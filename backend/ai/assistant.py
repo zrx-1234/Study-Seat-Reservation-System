@@ -5,7 +5,7 @@
 
 from flask import Blueprint, request, jsonify
 
-assistant_bp = Blueprint('assistant', __name__, url_prefix='/api/student/assistant')
+assistant_bp = Blueprint('assistant', __name__, url_prefix='/api/ai/assistant')
 
 
 @assistant_bp.route('/chat', methods=['POST'])

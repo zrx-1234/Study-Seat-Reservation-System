@@ -46,7 +46,7 @@ const messages = ref([])
 const suggestions = ref([])
 
 // TODO: 接入API
-const API_BASE = '/api/student/assistant'
+const API_BASE = '/api/ai/assistant'
 
 const sendMessage = async (text) => {
   if (!text.trim()) return

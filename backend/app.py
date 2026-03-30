@@ -14,7 +14,7 @@ def create_app():
     # Register blueprints
     from admin.routes import admin_bp
     from student.routes import student_bp
-    from student.assistant import assistant_bp
+    from ai.assistant import assistant_bp
 
     app.register_blueprint(admin_bp)
     app.register_blueprint(student_bp)
