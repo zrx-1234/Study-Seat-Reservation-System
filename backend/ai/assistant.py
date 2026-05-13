@@ -3,69 +3,65 @@
 负责：自然语言处理、查询解析、对话管理、大语言模型集成
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
+from flask_jwt_extended import jwt_required
 
-assistant_bp = Blueprint('assistant', __name__, url_prefix='/api/ai/assistant')
+from common.auth import get_current_user
+from common.utils import success_response, error_response
+
+assistant_bp = Blueprint('assistant', __name__, url_prefix='/api/v1/ai')
 
 
 @assistant_bp.route('/chat', methods=['POST'])
+@jwt_required()
 def chat():
     """
-    处理用户自然语言查询
-    TODO: 实现以下功能
-    - 查询实时空座（如"今天晚上还有空座吗？"）
-    - 条件筛选座位（如"帮我找靠窗的座位"、"找有插座的座位"）
-    - 查询个人预约（如"我今天定了哪里的座位"）
+    智能助手交互
     """
     data = request.get_json()
     message = data.get('message', '')
-    user_id = data.get('user_id')  # 当前登录用户
+    session_id = data.get('session_id')
+
+    if not message:
+        return error_response('message 不能为空', code=400)
+
+    user = get_current_user()
 
     # TODO: 实现自然语言处理逻辑
     # 1. 关键词匹配/意图识别
     # 2. 调用座位搜索/预约查询服务
     # 3. 返回结构化响应
 
-    return jsonify({
-        'code': 0,
-        'message': 'success',
-        'data': {
-            'reply': '您好，我是智能助手，请问有什么可以帮助您的？',
-            'suggestions': ['查询空座', '搜索座位', '我的预约']
+    return success_response(data={
+        'reply': '您好，我是智能助手，请问有什么可以帮助您的？',
+        'action': 'text',
+        'payload': {
+            'session_id': session_id
         }
     })
 
 
 @assistant_bp.route('/history', methods=['GET'])
+@jwt_required()
 def get_history():
     """
     获取对话历史
-    TODO: 维护会话状态，返回上下文相关回复
     """
-    user_id = request.args.get('user_id')
-
+    session_id = request.args.get('session_id')
     # TODO: 返回用户对话历史记录
-
-    return jsonify({
-        'code': 0,
-        'message': 'success',
-        'data': []
-    })
+    return success_response(data={'items': []})
 
 
 @assistant_bp.route('/clear', methods=['POST'])
+@jwt_required()
 def clear_history():
     """
     清除对话历史
     """
-    user_id = request.get_json().get('user_id')
-
+    data = request.get_json() or {}
+    session_id = data.get('session_id')
     # TODO: 清除用户对话历史
-
-    return jsonify({
-        'code': 0,
-        'message': 'success'
-    })
+    return success_response(data=None)
 
 
 def parse_intent(message: str) -> dict:

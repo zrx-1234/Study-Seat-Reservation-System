@@ -1,8 +1,11 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 
 from common.config import Config
 from common.models import db
+from common.auth import init_jwt
+from common.utils import register_error_handlers
 
 
 def create_app():
@@ -11,6 +14,9 @@ def create_app():
 
     CORS(app)
     db.init_app(app)
+    Migrate(app, db)
+    init_jwt(app)
+    register_error_handlers(app)
 
     # 注册各模块蓝本
     from admin import register_blueprints as register_admin
