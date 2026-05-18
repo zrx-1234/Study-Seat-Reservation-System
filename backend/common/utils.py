@@ -1,25 +1,53 @@
 """
-通用工具函数
+v2架构迁移：此文件保留以向后兼容
+新代码请从 infrastructure.exceptions 导入
 """
 
 from flask import jsonify
 
+# 优先导入新的实现
+try:
+    from infrastructure.exceptions import (
+        success_response as new_success_response,
+        error_response as new_error_response,
+        register_error_handlers as new_register_error_handlers,
+        DomainException,
+        AuthenticationError,
+        AuthorizationError,
+        NotFoundError,
+        ConflictError,
+        ValidationError
+    )
+except ImportError:
+    new_success_response = None
+    new_error_response = None
+    new_register_error_handlers = None
+
 
 def success_response(data=None, message='success', code=200):
-    """统一成功响应格式"""
+    """统一成功响应格式（v2桥接）"""
+    if new_success_response is not None:
+        return new_success_response(data=data, message=message, code=code)
     return jsonify(code=code, message=message, data=data if data is not None else {})
 
 
 def error_response(message='服务器错误', code=500, data=None):
-    """统一失败响应格式"""
+    """统一失败响应格式（v2桥接）"""
+    if new_error_response is not None:
+        return new_error_response(message=message, code=code, data=data)
     return jsonify(code=code, message=message, data=data), code
 
 
-# ---------------------------------------------------------------------------
-# 全局异常处理器注册（在 create_app 中调用）
-# ---------------------------------------------------------------------------
-
 def register_error_handlers(app):
+    """全局异常处理器注册（v2桥接）"""
+    if new_register_error_handlers is not None:
+        new_register_error_handlers(app)
+    else:
+        _register_old_error_handlers(app)
+
+
+def _register_old_error_handlers(app):
+    """旧的异常处理器（兜底）"""
     @app.errorhandler(400)
     def bad_request(err):
         return error_response(message='请求参数错误', code=400)
@@ -46,7 +74,6 @@ def register_error_handlers(app):
 
     @app.errorhandler(Exception)
     def catch_all(err):
-        # 如果异常已经被上面的 handler 处理过，则不再重复捕获
         from werkzeug.exceptions import HTTPException
         if isinstance(err, HTTPException):
             raise err
