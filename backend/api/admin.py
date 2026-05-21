@@ -280,8 +280,12 @@ def list_rooms():
 @require_permission('room:manage')
 def create_room():
     """登记自习室"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    try:
+        dto = room_service.create_room(data)
+        return success_response(data=dto)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/rooms/<int:id>', methods=['GET'])
@@ -289,8 +293,10 @@ def create_room():
 @require_permission('room:manage')
 def get_room_detail(id):
     """自习室详情"""
-    # TODO: 实现
-    return success_response(data=None)
+    room = room_service.get_room(id)
+    if not room:
+        return error_response('自习室不存在', code=404)
+    return success_response(data=room)
 
 
 @admin_bp.route('/rooms/<int:id>', methods=['PUT'])
@@ -298,8 +304,14 @@ def get_room_detail(id):
 @require_permission('room:manage')
 def update_room(id):
     """更新自习室信息"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    try:
+        dto = room_service.update_room(id, data)
+        return success_response(data=dto)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/rooms/<int:id>', methods=['DELETE'])
@@ -307,8 +319,11 @@ def update_room(id):
 @require_permission('room:manage')
 def delete_room(id):
     """注销自习室（is_active设为false，并自动取消未来预约）"""
-    # TODO: 实现
-    return success_response(data=None)
+    try:
+        room_service.delete_room(id)
+        return success_response(data=None)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
 
 # ============================================================================
 # 3.6 座位管理
@@ -319,8 +334,11 @@ def delete_room(id):
 @require_permission('seat:manage')
 def list_seats(room_id):
     """某自习室的座位列表（分页）"""
-    # TODO: 实现
-    return success_response(data={'items': [], 'total': 0, 'page': 1, 'per_page': 20, 'pages': 0})
+    status = request.args.get('status')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    result = room_service.list_seats(room_id=room_id, status=status, page=page, per_page=per_page)
+    return success_response(data=result)
 
 
 @admin_bp.route('/rooms/<int:room_id>/seats', methods=['POST'])
@@ -328,8 +346,35 @@ def list_seats(room_id):
 @require_permission('seat:manage')
 def create_seats(room_id):
     """批量登记座位"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    seats = data.get('seats', [])
+
+    # 支持 prefix + count 批量生成
+    if not seats and data.get('prefix') and data.get('count'):
+        prefix = data.get('prefix')
+        start_number = data.get('start_number', 1)
+        count = data.get('count')
+        has_window = data.get('has_window', False)
+        has_plug = data.get('has_plug', False)
+        seats = []
+        for i in range(count):
+            num = start_number + i
+            seats.append({
+                'seat_number': f'{prefix}{num:02d}',
+                'has_window': has_window,
+                'has_plug': has_plug,
+            })
+
+    if not seats:
+        return error_response('座位数据不能为空', code=400)
+
+    try:
+        result = room_service.create_seats(room_id, seats)
+        return success_response(data=result)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/seats/<int:id>', methods=['PUT'])
@@ -337,8 +382,12 @@ def create_seats(room_id):
 @require_permission('seat:manage')
 def update_seat(id):
     """更新座位（状态、标记）"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    try:
+        dto = room_service.update_seat(id, data)
+        return success_response(data=dto)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
 
 
 @admin_bp.route('/seats/<int:id>', methods=['DELETE'])
@@ -346,8 +395,11 @@ def update_seat(id):
 @require_permission('seat:manage')
 def delete_seat(id):
     """注销座位（status设为retired）"""
-    # TODO: 实现
-    return success_response(data=None)
+    try:
+        room_service.delete_seat(id)
+        return success_response(data=None)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
 
 # ============================================================================
 # 3.7 预约与违约管理

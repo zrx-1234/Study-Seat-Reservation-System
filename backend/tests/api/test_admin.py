@@ -4,6 +4,7 @@ API-ADM 测试：管理端接口模块
 """
 
 import pytest
+from datetime import time
 from flask import Flask
 
 from extensions import db, jwt, init_extensions
@@ -58,6 +59,8 @@ def admin_token(admin_app, admin_client):
             Permission(name='系统配置', code='system:config', description='调整系统全局参数'),
             Permission(name='用户管理', code='user:manage', description='管理用户'),
             Permission(name='角色管理', code='role:manage', description='管理角色'),
+            Permission(name='自习室管理', code='room:manage', description='管理自习室'),
+            Permission(name='座位管理', code='seat:manage', description='管理座位'),
         ]
         for p in perms:
             db.session.add(p)
@@ -567,3 +570,231 @@ class TestUsers:
         usernames = [u['username'] for u in data['data']['items']]
         assert 'list_a' in usernames
         assert 'list_b' not in usernames
+
+
+# ============================================================================
+# 5. 自习室管理接口测试
+# ============================================================================
+
+class TestAdminRooms:
+    """自习室 CRUD 接口测试"""
+
+    def test_create_room_success(self, admin_client, admin_token):
+        resp = admin_client.post(
+            '/api/v1/admin/rooms',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={
+                'name': '理科图书馆 301',
+                'location': '理科图书馆 3楼',
+                'capacity': 60,
+                'room_type': 'public',
+                'open_time': '07:00:00',
+                'close_time': '22:00:00',
+            }
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['code'] == 200
+        assert data['data']['name'] == '理科图书馆 301'
+
+    def test_create_room_duplicate_name(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            db.session.add(StudyRoom(
+                name='dup_room', location='x', capacity=10, room_type='public'
+            , open_time=time(7, 0), close_time=time(22, 0)))
+            db.session.commit()
+
+        resp = admin_client.post(
+            '/api/v1/admin/rooms',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={'name': 'dup_room', 'capacity': 20}
+        )
+        assert resp.status_code == 409
+
+    def test_get_room_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            room = StudyRoom(name='get_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.get(
+            f'/api/v1/admin/rooms/{room_id}',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['data']['name'] == 'get_room'
+
+    def test_get_room_not_found(self, admin_client, admin_token):
+        resp = admin_client.get(
+            '/api/v1/admin/rooms/99999',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 404
+
+    def test_update_room_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            room = StudyRoom(name='old_name', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.put(
+            f'/api/v1/admin/rooms/{room_id}',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={'name': 'new_name', 'capacity': 20}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['data']['name'] == 'new_name'
+
+    def test_delete_room_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            room = StudyRoom(name='to_delete', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.delete(
+            f'/api/v1/admin/rooms/{room_id}',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 200
+        with admin_app.app_context():
+            r = StudyRoom.query.get(room_id)
+            assert r.is_active is False
+
+    def test_list_rooms(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            db.session.add(StudyRoom(name='r1', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0)))
+            db.session.add(StudyRoom(name='r2', location='y', capacity=20, room_type='department', open_time=time(7, 0), close_time=time(22, 0)))
+            db.session.commit()
+
+        resp = admin_client.get(
+            '/api/v1/admin/rooms',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['code'] == 200
+        assert len(data['data']['items']) >= 2
+
+    def test_list_rooms_without_auth(self, admin_client):
+        resp = admin_client.get('/api/v1/admin/rooms')
+        assert resp.status_code == 401
+
+
+# ============================================================================
+# 6. 座位管理接口测试
+# ============================================================================
+
+class TestAdminSeats:
+    """座位 CRUD 接口测试"""
+
+    def test_create_seats_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            room = StudyRoom(name='seat_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.post(
+            f'/api/v1/admin/rooms/{room_id}/seats',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={
+                'seats': [
+                    {'seat_number': 'A01', 'has_window': True, 'has_plug': True},
+                    {'seat_number': 'A02', 'has_window': False, 'has_plug': False},
+                ]
+            }
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data['data']) == 2
+
+    def test_create_seats_with_prefix(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom
+            room = StudyRoom(name='prefix_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.post(
+            f'/api/v1/admin/rooms/{room_id}/seats',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={'prefix': 'B', 'start_number': 1, 'count': 3, 'has_window': True}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data['data']) == 3
+        numbers = [s['seat_number'] for s in data['data']]
+        assert 'B01' in numbers
+        assert 'B02' in numbers
+        assert 'B03' in numbers
+
+    def test_list_seats(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom, Seat
+            room = StudyRoom(name='list_seat_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.flush()
+            db.session.add(Seat(room_id=room.id, seat_number='S01'))
+            db.session.add(Seat(room_id=room.id, seat_number='S02'))
+            db.session.commit()
+            room_id = room.id
+
+        resp = admin_client.get(
+            f'/api/v1/admin/rooms/{room_id}/seats',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert len(data['data']['items']) == 2
+
+    def test_update_seat_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom, Seat
+            room = StudyRoom(name='upd_seat_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.flush()
+            seat = Seat(room_id=room.id, seat_number='U01', status='available')
+            db.session.add(seat)
+            db.session.commit()
+            seat_id = seat.id
+
+        resp = admin_client.put(
+            f'/api/v1/admin/seats/{seat_id}',
+            headers={'Authorization': f'Bearer {admin_token}'},
+            json={'status': 'maintenance'}
+        )
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert data['data']['status'] == 'maintenance'
+
+    def test_delete_seat_success(self, admin_app, admin_client, admin_token):
+        with admin_app.app_context():
+            from domain.room.models import StudyRoom, Seat
+            room = StudyRoom(name='del_seat_room', location='x', capacity=10, room_type='public', open_time=time(7, 0), close_time=time(22, 0))
+            db.session.add(room)
+            db.session.flush()
+            seat = Seat(room_id=room.id, seat_number='D01', status='available')
+            db.session.add(seat)
+            db.session.commit()
+            seat_id = seat.id
+
+        resp = admin_client.delete(
+            f'/api/v1/admin/seats/{seat_id}',
+            headers={'Authorization': f'Bearer {admin_token}'}
+        )
+        assert resp.status_code == 200
+        with admin_app.app_context():
+            s = Seat.query.get(seat_id)
+            assert s.status == 'retired'
