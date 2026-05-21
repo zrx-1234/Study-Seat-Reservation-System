@@ -5,9 +5,10 @@ API-ADM: 管理端接口模块
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
 
-from infrastructure.exceptions import success_response, error_response
+from infrastructure.exceptions import success_response, error_response, ValidationError, NotFoundError, ConflictError
 from infrastructure.auth import get_current_user_id, require_permission
 from domain.user import service as user_service
+from domain.user.dto import UserCreateDTO, UserUpdateDTO, RoleCreateDTO, RoleUpdateDTO
 from domain.room import service as room_service
 from domain.reservation import service as reservation_service
 from domain.system import service as system_service
@@ -79,8 +80,21 @@ def list_roles():
 @require_permission('role:manage')
 def create_role():
     """创建角色"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    name = data.get('name')
+    description = data.get('description')
+    permission_ids = data.get('permission_ids', [])
+
+    if not name:
+        return error_response('角色名称不能为空', code=400)
+
+    try:
+        dto = user_service.create_role(
+            RoleCreateDTO(name=name, description=description, permission_ids=permission_ids)
+        )
+        return success_response(data=dto)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/roles/<int:id>', methods=['GET'])
@@ -88,8 +102,10 @@ def create_role():
 @require_permission('role:manage')
 def get_role(id):
     """角色详情（含权限列表）"""
-    # TODO: 实现
-    return success_response(data=None)
+    role = user_service.get_role(id)
+    if not role:
+        return error_response('角色不存在', code=404)
+    return success_response(data=role)
 
 
 @admin_bp.route('/roles/<int:id>', methods=['PUT'])
@@ -97,8 +113,21 @@ def get_role(id):
 @require_permission('role:manage')
 def update_role(id):
     """更新角色"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    name = data.get('name')
+    description = data.get('description')
+    permission_ids = data.get('permission_ids')
+
+    try:
+        dto = user_service.update_role(
+            id,
+            RoleUpdateDTO(name=name, description=description, permission_ids=permission_ids)
+        )
+        return success_response(data=dto)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/roles/<int:id>', methods=['DELETE'])
@@ -106,8 +135,13 @@ def update_role(id):
 @require_permission('role:manage')
 def delete_role(id):
     """删除角色（如角色下仍有用户，返回409冲突）"""
-    # TODO: 实现
-    return success_response(data=None)
+    try:
+        user_service.delete_role(id)
+        return success_response(data=None)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except ConflictError as e:
+        return error_response(str(e), code=409)
 
 
 @admin_bp.route('/permissions', methods=['GET'])
@@ -127,8 +161,15 @@ def list_permissions():
 @require_permission('user:manage')
 def list_users():
     """管理员用户列表（分页）"""
-    # TODO: 实现
-    return success_response(data={'items': [], 'total': 0, 'page': 1, 'per_page': 20, 'pages': 0})
+    role_id = request.args.get('role_id', type=int)
+    keyword = request.args.get('keyword')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    result = user_service.list_users(
+        user_type='admin', role_id=role_id, keyword=keyword, page=page, per_page=per_page
+    )
+    return success_response(data=result)
 
 
 @admin_bp.route('/users', methods=['POST'])
@@ -136,8 +177,32 @@ def list_users():
 @require_permission('user:manage')
 def create_user():
     """创建管理员账号"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    username = data.get('username')
+    password = data.get('password')
+    name = data.get('name')
+    department = data.get('department')
+    email = data.get('email')
+    role_ids = data.get('role_ids', [])
+
+    if not username or not password or not name:
+        return error_response('用户名、密码和姓名不能为空', code=400)
+
+    try:
+        dto = user_service.create_user(
+            UserCreateDTO(
+                username=username, password=password, name=name,
+                user_type='admin', department=department, email=email
+            )
+        )
+        # 分配角色
+        if role_ids:
+            user_service.assign_roles_to_user(dto.id, role_ids)
+            # 重新获取以包含角色信息
+            dto = user_service.get_user(dto.id)
+        return success_response(data=dto)
+    except (ValidationError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/users/<int:id>', methods=['GET'])
@@ -145,8 +210,10 @@ def create_user():
 @require_permission('user:manage')
 def get_user(id):
     """管理员详情"""
-    # TODO: 实现
-    return success_response(data=None)
+    user = user_service.get_user(id)
+    if not user:
+        return error_response('用户不存在', code=404)
+    return success_response(data=user)
 
 
 @admin_bp.route('/users/<int:id>', methods=['PUT'])
@@ -154,8 +221,24 @@ def get_user(id):
 @require_permission('user:manage')
 def update_user(id):
     """更新管理员信息及角色分配"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    name = data.get('name')
+    department = data.get('department')
+    email = data.get('email')
+    role_ids = data.get('role_ids')
+
+    try:
+        dto = user_service.update_user(
+            id, UserUpdateDTO(name=name, department=department, email=email)
+        )
+        if role_ids is not None:
+            user_service.assign_roles_to_user(id, role_ids)
+            dto = user_service.get_user(id)
+        return success_response(data=dto)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except ValidationError as e:
+        return error_response(str(e), code=e.code)
 
 
 @admin_bp.route('/users/<int:id>', methods=['DELETE'])
@@ -163,8 +246,13 @@ def update_user(id):
 @require_permission('user:manage')
 def delete_user(id):
     """删除管理员账号"""
-    # TODO: 实现
-    return success_response(data=None)
+    try:
+        user_service.delete_user(id)
+        return success_response(data=None)
+    except NotFoundError as e:
+        return error_response(str(e), code=404)
+    except ConflictError as e:
+        return error_response(str(e), code=409)
 
 # ============================================================================
 # 3.5 自习室管理
@@ -337,5 +425,5 @@ def update_config(key):
     try:
         system_service.set_config(key, value, description)
         return success_response(data=None)
-    except ValueError as e:
+    except ValidationError as e:
         return error_response(str(e), code=400)
