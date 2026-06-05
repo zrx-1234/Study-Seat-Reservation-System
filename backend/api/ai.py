@@ -8,6 +8,8 @@ from flask_jwt_extended import jwt_required
 from infrastructure.exceptions import success_response, error_response
 from infrastructure.auth import get_current_user_id
 from domain.ai import service as ai_service
+from domain.ai.rate_limiter import check_rate_limit
+import os
 
 ai_bp = Blueprint('ai', __name__, url_prefix='/api/v1/ai')
 
@@ -18,8 +20,29 @@ ai_bp = Blueprint('ai', __name__, url_prefix='/api/v1/ai')
 @ai_bp.route('/chat', methods=['POST'])
 @jwt_required()
 def chat():
-    """智能助手交互"""
+    """
+    智能助手交互
+
+    限流策略：
+    - 默认: 30次/分钟
+    - 可通过环境变量配置
+    """
     user_id = get_current_user_id()
+
+    # 检查限流
+    rate_limit = int(os.getenv('AI_RATE_LIMIT_PER_USER', '30'))
+    rate_window = int(os.getenv('AI_RATE_LIMIT_WINDOW', '60'))
+
+    allowed, remaining = check_rate_limit(user_id, limit=rate_limit, window=rate_window)
+
+    if not allowed:
+        return error_response(
+            f'请求过于频繁，请稍后再试。限制：{rate_limit}次/{rate_window}秒',
+            code=429,
+            data={'remaining': remaining}
+        )
+
+    # 解析请求
     data = request.get_json() or {}
     message = data.get('message')
     session_id = data.get('session_id')
@@ -27,8 +50,16 @@ def chat():
     if not message:
         return error_response('message不能为空', code=400)
 
+    # 调用AI服务
     result = ai_service.chat(user_id, message, session_id=session_id)
-    return success_response(data=result)
+
+    # 在响应头中返回限流信息
+    response = success_response(data=result)
+    response.headers['X-RateLimit-Limit'] = str(rate_limit)
+    response.headers['X-RateLimit-Remaining'] = str(remaining - 1)
+    response.headers['X-RateLimit-Window'] = str(rate_window)
+
+    return response
 
 
 @ai_bp.route('/history', methods=['GET'])
