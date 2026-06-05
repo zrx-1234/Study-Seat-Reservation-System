@@ -11,7 +11,7 @@ from flask import jsonify
 
 def success_response(data=None, message='success', code=200):
     """统一成功响应格式"""
-    return jsonify(code=code, message=message, data=data if data is not None {})
+    return jsonify(code=code, message=message, data=data if data is not None else {})
 
 def error_response(message='服务器错误', code=500, data=None):
     """统一失败响应格式"""
