@@ -37,24 +37,12 @@ request.interceptors.response.use(
     const { response } = error
     if (response) {
       const status = response.status
-      let msg = response.data?.message
-      if (!msg) {
-        if (status === 401) msg = '账号或密码错误，或登录已过期'
-        else if (status === 409) msg = '该学号已注册，请直接登录'
-        else if (status === 502 || status === 503 || status === 504) msg = '后端服务不可用，请确认后端已启动'
-        else if (status >= 500) msg = '服务器错误，请稍后再试'
-        else msg = '请求失败'
-      }
+      const msg = response.data?.message || '服务器错误'
       if (status === 401) {
-        const token = localStorage.getItem('student_token')
-        if (token) {
-          ElMessage.error('登录已过期，请重新登录')
-          localStorage.removeItem('student_token')
-          localStorage.removeItem('student_user')
-          window.location.href = '/login'
-        } else {
-          ElMessage.error(msg)
-        }
+        ElMessage.error('登录已过期，请重新登录')
+        localStorage.removeItem('student_token')
+        localStorage.removeItem('student_user')
+        window.location.href = '/login'
       } else {
         ElMessage.error(msg)
       }

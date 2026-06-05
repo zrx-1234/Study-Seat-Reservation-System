@@ -7,6 +7,7 @@ from datetime import datetime
 
 from domain.user.models import User, Role, Permission
 from infrastructure.auth import hash_password, verify_password, create_token
+from infrastructure.exceptions import ValidationError, ConflictError
 from extensions import db
 
 # ============================================================================
@@ -45,11 +46,53 @@ def authenticate(username: str, password: str) -> Tuple[Optional[dict], Optional
     return user_dict, token
 
 
+def register_student(username: str, password: str, name: str,
+                     department: str = None, email: str = None) -> Tuple[dict, str]:
+    """注册学生账号，返回 (用户信息字典, token)。"""
+    username = (username or '').strip()
+    password = (password or '').strip()
+    name = (name or '').strip()
+    department = (department or '').strip() or None
+    email = (email or '').strip() or None
+
+    if not username or not password or not name:
+        raise ValidationError('学号、密码、姓名不能为空')
+    if len(password) < 6:
+        raise ValidationError('密码长度不能少于 6 位')
+
+    exists = User.query.filter_by(username=username).first()
+    if exists:
+        raise ConflictError('该学号已注册')
+
+    user = User(
+        username=username,
+        password_hash=hash_password(password),
+        name=name,
+        user_type='student',
+        department=department,
+        email=email,
+        is_active=True,
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    user_dict = {
+        'id': user.id,
+        'username': user.username,
+        'name': user.name,
+        'user_type': user.user_type,
+        'department': user.department,
+        'email': user.email,
+    }
+    token = create_token(str(user.id), {'user_type': 'student', 'permissions': []})
+    return user_dict, token
+
+
 def get_current_user(user_id: int) -> Optional[dict]:
     """
     根据用户ID获取当前用户基本信息
     """
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return None
     return {
@@ -66,7 +109,7 @@ def get_user_profile(user_id: int) -> dict:
     获取用户完整Profile，含活跃预约数、违约次数统计
     被学生端 /student/profile 调用
     """
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return None
 
@@ -181,7 +224,7 @@ def assign_roles_to_user(user_id: int, role_ids: List[int]):
 
 def check_permission(user_id: int, permission_code: str) -> bool:
     """检查指定用户是否拥有指定权限代码"""
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or user.user_type != 'admin':
         return False
 
@@ -194,7 +237,7 @@ def check_permission(user_id: int, permission_code: str) -> bool:
 
 def get_user_permissions(user_id: int) -> List[str]:
     """获取用户的全部权限代码列表"""
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or user.user_type != 'admin':
         return []
 

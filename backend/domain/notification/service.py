@@ -11,11 +11,20 @@ from extensions import db
 # 通知服务（待实现）
 # ============================================================================
 
+VALID_TYPES = {'remind', 'check_in_alert', 'violation', 'cancel', 'system'}
+
+
 def send_notification(user_id: int, notification_type: str, content: str,
                       related_entity_type: str = None, related_entity_id: int = None):
     """
     创建并发送一条通知
+
+    related_entity_type / related_entity_id 为关联业务信息（当前数据模型未持久化，
+    保留参数以兼容调用契约，便于后续扩展）。
     """
+    if notification_type not in VALID_TYPES:
+        notification_type = 'system'
+
     notif = Notification(
         user_id=user_id,
         type=notification_type,
@@ -48,7 +57,8 @@ def list_notifications(user_id: int, is_read: bool = None, page: int = 1, per_pa
         'total': pagination.total,
         'page': pagination.page,
         'per_page': pagination.per_page,
-        'pages': pagination.pages
+        'pages': pagination.pages,
+        'unread_count': get_unread_count(user_id)
     }
 
 

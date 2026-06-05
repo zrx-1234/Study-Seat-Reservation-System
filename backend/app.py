@@ -30,14 +30,18 @@ def create_app():
     app.register_blueprint(ai_bp)
 
     # 保留旧的蓝图注册（向后兼容，逐步迁移）
+    # 若与新 API 蓝图重名，直接跳过旧蓝图，避免重复注册导致启动失败。
     try:
         from admin import register_blueprints as register_admin
         from student import register_blueprints as register_student
         from ai import register_blueprints as register_ai
 
-        register_admin(app)
-        register_student(app)
-        register_ai(app)
+        for register_legacy in (register_admin, register_student, register_ai):
+            try:
+                register_legacy(app)
+            except ValueError as err:
+                if 'already registered for a different blueprint' not in str(err):
+                    raise
     except ImportError:
         pass
 
