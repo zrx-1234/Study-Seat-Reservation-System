@@ -5,6 +5,7 @@
 """
 
 import os
+from datetime import time as dt_time
 from werkzeug.security import generate_password_hash
 from app import create_app
 from common.models import db, User, Role, Permission, StudyRoom, Seat, SystemConfig
@@ -186,7 +187,13 @@ def seed_study_rooms_and_seats():
         if existing:
             continue
 
+        room_info = room_info.copy()
         seats_info = room_info.pop('seats')
+        # SQLite 的 Time 字段只接受 Python time 对象，不能直接写字符串。
+        if isinstance(room_info.get('open_time'), str):
+            room_info['open_time'] = dt_time.fromisoformat(room_info['open_time'])
+        if isinstance(room_info.get('close_time'), str):
+            room_info['close_time'] = dt_time.fromisoformat(room_info['close_time'])
         room = StudyRoom(**room_info)
         db.session.add(room)
         db.session.flush()  # 获取 room.id

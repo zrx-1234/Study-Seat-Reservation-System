@@ -3,7 +3,7 @@ MOD-ROOM: 自习室与座位模块 - 数据实体
 StudyRoom, Seat, SignInCode
 """
 
-from datetime import datetime
+from datetime import datetime, time as dt_time
 from extensions import db
 
 # ============================================================================
@@ -24,8 +24,8 @@ class StudyRoom(db.Model):
         comment='public=全校公共, department=院系专属'
     )
     department = db.Column(db.String(128), nullable=True, comment='院系专属时填写')
-    open_time = db.Column(db.Time, default='07:00:00', nullable=False, comment='每日开放起始时间')
-    close_time = db.Column(db.Time, default='22:00:00', nullable=False, comment='每日关闭时间')
+    open_time = db.Column(db.Time, default=dt_time(7, 0), nullable=False, comment='每日开放起始时间')
+    close_time = db.Column(db.Time, default=dt_time(22, 0), nullable=False, comment='每日关闭时间')
     is_active = db.Column(db.Boolean, default=True, nullable=False, comment='是否可用（注销则为False）')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
