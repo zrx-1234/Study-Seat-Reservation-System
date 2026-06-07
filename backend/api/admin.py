@@ -263,11 +263,14 @@ def delete_user(id):
 @require_permission('room:manage')
 def list_rooms():
     """自习室列表（分页）"""
-    room_type = request.args.get('room_type')
+    room_type = request.args.get('room_type') or None
     is_active = request.args.get('is_active')
-    if is_active is not None:
+    # 空字符串应视为"未选择"，不传过滤条件；只有 'true'/'false' 才生效
+    if is_active and is_active.strip():
         is_active = is_active.lower() == 'true'
-    keyword = request.args.get('keyword')
+    else:
+        is_active = None
+    keyword = request.args.get('keyword') or None
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
 
