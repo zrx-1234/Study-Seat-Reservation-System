@@ -115,9 +115,39 @@ def parse_intent_by_keywords(message: str, context: Dict[str, Any] = None) -> Di
     confidence = 0.0
     slots = {}
 
-    # 1. 查询空座位
-    seat_keywords = ['座位', '空座', '位置', '自习室', '有没有', '还有', '可用']
-    if any(kw in message_lower for kw in seat_keywords):
+    # 意图匹配优先级：先匹配具体模式，再匹配通用模式
+    # 注意：需要先检查更具体的模式，避免被通用关键词错误捕获
+
+    # 1. 闲聊（最具体的关键词）
+    if any(kw in message_lower for kw in ['你好', 'hello', 'hi', '谢谢', '再见']):
+        intent_type = 'chitchat'
+        confidence = 0.9
+
+    # 2. 系统帮助
+    elif any(kw in message_lower for kw in ['怎么', '如何', '帮助', 'help', '使用']):
+        intent_type = 'system_faq'
+        confidence = 0.7
+
+    # 3. 查询通知
+    elif any(kw in message_lower for kw in ['通知', '消息', '提醒']):
+        intent_type = 'query_notification'
+        confidence = 0.8
+
+    # 4. 查询我的预约（在座位查询之前，因为"我定了座位"也包含"座位"）
+    elif any(kw in message_lower for kw in ['我的预约', '预约记录', '我预约了', '定了', '订了',
+                                              '我有什么预约', '我的座位', '查看预约']):
+        intent_type = 'query_my_reservation'
+        confidence = 0.85
+
+    # 5. 查询自习室信息（在座位查询之前，因为"有哪些自习室"也包含"自习室"）
+    elif any(kw in message_lower for kw in ['哪些自习室', '自习室列表', '有哪些自习室',
+                                              '有什么自习室', '图书馆在哪', '图书馆位置']):
+        intent_type = 'query_room_info'
+        confidence = 0.75
+
+    # 6. 查询空座位（最通用的查询，放在最后）
+    elif any(kw in message_lower for kw in ['座位', '空座', '位置', '自习室', '有没有', '还有',
+                                              '可用', '空闲', '空的', '空位']):
         intent_type = 'query_empty_seat'
         confidence = 0.7
 
@@ -133,30 +163,9 @@ def parse_intent_by_keywords(message: str, context: Dict[str, Any] = None) -> Di
         prefs = extract_seat_preferences(message)
         slots.update(prefs)
 
-    # 2. 查询我的预约
-    elif any(kw in message_lower for kw in ['我的预约', '预约记录', '我预约了']):
-        intent_type = 'query_my_reservation'
-        confidence = 0.85
-
-    # 3. 查询自习室信息
-    elif any(kw in message_lower for kw in ['哪些自习室', '自习室列表', '图书馆在哪']):
-        intent_type = 'query_room_info'
-        confidence = 0.75
-
-    # 4. 查询通知
-    elif any(kw in message_lower for kw in ['通知', '消息', '提醒']):
-        intent_type = 'query_notification'
-        confidence = 0.8
-
-    # 5. 系统帮助
-    elif any(kw in message_lower for kw in ['怎么', '如何', '帮助', 'help', '使用']):
-        intent_type = 'system_faq'
-        confidence = 0.7
-
-    # 6. 闲聊
-    elif any(kw in message_lower for kw in ['你好', 'hello', 'hi', '谢谢', '再见']):
-        intent_type = 'chitchat'
-        confidence = 0.9
+    else:
+        intent_type = 'unknown'
+        confidence = 0.0
 
     return {
         'intent_type': intent_type,
