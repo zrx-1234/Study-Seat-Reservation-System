@@ -53,11 +53,11 @@ def dashboard_stats():
     resv_stats = reservation_service.get_reservation_stats()
 
     return success_response(data={
-        'total_rooms': room_stats.get('total_rooms', 0),
-        'total_seats': room_stats.get('total_seats', 0),
-        'today_reservations': resv_stats.get('today_reservations', 0),
-        'today_violations': resv_stats.get('today_violations', 0),
-        'active_users': resv_stats.get('active_users', 0)
+        'total_rooms': getattr(room_stats, 'total_rooms', 0),
+        'total_seats': getattr(room_stats, 'total_seats', 0),
+        'today_reservations': resv_stats.get('today_reservations', 0) if isinstance(resv_stats, dict) else getattr(resv_stats, 'today_reservations', 0),
+        'today_violations': resv_stats.get('today_violations', 0) if isinstance(resv_stats, dict) else getattr(resv_stats, 'today_violations', 0),
+        'active_users': resv_stats.get('active_users', 0) if isinstance(resv_stats, dict) else getattr(resv_stats, 'active_users', 0)
     })
 
 # ============================================================================
