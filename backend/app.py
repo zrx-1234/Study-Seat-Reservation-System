@@ -20,7 +20,7 @@ def create_app():
     # 注册全局异常处理
     register_error_handlers(app)
 
-    # 注册新的API蓝本（v2架构）
+    # 注册 v2 架构 API 蓝本
     from api.student import student_bp
     from api.admin import admin_bp
     from api.ai import ai_bp
@@ -28,18 +28,6 @@ def create_app():
     app.register_blueprint(student_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(ai_bp)
-
-    # 保留旧的蓝图注册（向后兼容，逐步迁移）
-    try:
-        from admin import register_blueprints as register_admin
-        from student import register_blueprints as register_student
-        from ai import register_blueprints as register_ai
-
-        register_admin(app)
-        register_student(app)
-        register_ai(app)
-    except ImportError:
-        pass
 
     return app
 
