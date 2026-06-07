@@ -3,6 +3,8 @@ __pycache__/
 *$py.class
 venv/
 .env
+.env.local
+.env.production
 
 # Node.js / Frontend
 node_modules/
@@ -11,3 +13,12 @@ dist/
 
 # 顶层错误生成的 lock 文件（各子项目独立管理）
 /frontend/package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/

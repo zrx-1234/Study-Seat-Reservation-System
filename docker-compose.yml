@@ -1,0 +1,96 @@
+name: study-seat-reservation
+
+services:
+  # ============================================================
+  # MySQL 数据库
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: ssr-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - ssr-net
+    # 仅暴露给内网，不映射端口到宿主机
+    # 如需 navicat 等工具直连，取消下面注释
+    # ports:
+    #   - "3306:3306"
+
+  # ============================================================
+  # Flask 后端 API（不直接对外暴露，由 gateway 反代）
+  # ============================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ssr-backend
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      FLASK_APP: app.py
+      FLASK_ENV: production
+      GUNICORN_WORKERS: 4
+      TZ: Asia/Shanghai
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - ssr-net
+
+  # ============================================================
+  # 统一前端网关
+  # - landing 入口页
+  # - /admin/  → 管理端
+  # - /student/ → 学生端
+  # - /ai/      → AI 端
+  # - /api/*    → 反代到 backend:5000
+  # ============================================================
+  gateway:
+    build:
+      # 注意 context 为项目根目录，因为 Dockerfile 需要拷贝 frontend/ 下三个项目
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: ssr-gateway
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - ssr-net
+    environment:
+      TZ: Asia/Shanghai
+
+# ============================================================
+# 网络与数据卷
+# ============================================================
+networks:
+  ssr-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
