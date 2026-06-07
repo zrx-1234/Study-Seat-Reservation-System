@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>自习座位预约系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      text-align: center;
+    }
+    .header {
+      margin-bottom: 48px;
+    }
+    .header .logo {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 42px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-decoration: none;
+      color: #fff;
+      transition: all 0.3s ease;
+      display: block;
+    }
+    .card:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    }
+    .card .icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 14px;
+      opacity: 0.85;
+      line-height: 1.6;
+    }
+    .card .status {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .status.ready { background: rgba(103, 194, 58, 0.4); }
+    .status.dev { background: rgba(230, 162, 60, 0.4); }
+    .footer {
+      font-size: 13px;
+      opacity: 0.7;
+    }
+    .footer a {
+      color: #fff;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">📚</div>
+      <h1>自习座位预约系统</h1>
+      <p>请选择您要进入的端口</p>
+    </div>
+
+    <div class="cards">
+      <a href="/student/" class="card">
+        <div class="icon">🎓</div>
+        <h3>学生端</h3>
+        <p>查询自习室、预约座位、签到、查看通知</p>
+        <span class="status dev">开发中</span>
+      </a>
+
+      <a href="/admin/" class="card">
+        <div class="icon">⚙️</div>
+        <h3>管理后台</h3>
+        <p>自习室管理、座位管理、用户权限、系统配置</p>
+        <span class="status ready">已上线</span>
+      </a>
+
+      <a href="/ai/" class="card">
+        <div class="icon">🤖</div>
+        <h3>AI 智能助手</h3>
+        <p>自然语言查询空座、智能推荐、对话式预约</p>
+        <span class="status dev">开发中</span>
+      </a>
+    </div>
+
+    <div class="footer">
+      © 2026 自习座位预约系统 · 软件过程管理课程项目
+    </div>
+  </div>
+</body>
+</html>

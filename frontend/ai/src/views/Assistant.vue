@@ -1,220 +1,105 @@
 <template>
-  <div class="assistant-container">
-    <div class="chat-header">
-      <h3>智能助手</h3>
-    </div>
+  <div class="placeholder-page">
+    <el-card class="placeholder-card">
+      <div class="emoji">🤖</div>
+      <h2>AI 智能助手</h2>
+      <p class="status">该功能正在开发中</p>
+      <p class="hint">AI 组同学正在加紧开发，敬请期待！</p>
 
-    <div class="chat-messages" ref="messagesRef">
-      <div
-        v-for="(msg, index) in messages"
-        :key="index"
-        :class="['message', msg.type]"
-      >
-        <div class="message-content">{{ msg.content }}</div>
+      <div class="meta">
+        <p><strong>负责小组：</strong>AI 智能化部分（成员E、成员F）</p>
+        <p><strong>当前进度：</strong>已搭建对话框架，正在接入意图识别和大模型</p>
+        <p><strong>预计完成：</strong>Sprint 2-3（第 3-6 周）</p>
       </div>
-    </div>
 
-    <div class="chat-suggestions" v-if="suggestions.length">
-      <span
-        v-for="(suggestion, index) in suggestions"
-        :key="index"
-        class="suggestion-tag"
-        @click="sendMessage(suggestion)"
-      >
-        {{ suggestion }}
-      </span>
-    </div>
+      <div class="features">
+        <h4>即将上线的功能</h4>
+        <ul>
+          <li>✅ 自然语言查询空座（"今晚还有靠窗的座位吗？"）</li>
+          <li>✅ 一键查看个人预约记录</li>
+          <li>✅ 智能推荐座位（基于历史偏好）</li>
+          <li>✅ 多轮对话与上下文理解</li>
+        </ul>
+      </div>
 
-    <div class="chat-input">
-      <input
-        v-model="inputMessage"
-        placeholder="输入您的问题..."
-        @keyup.enter="sendMessage(inputMessage)"
-      />
-      <button @click="sendMessage(inputMessage)">发送</button>
-    </div>
+      <el-button type="primary" @click="$router.push('/login')">返回登录</el-button>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
-
-const messagesRef = ref(null)
-const inputMessage = ref('')
-const messages = ref([])
-const suggestions = ref([])
-
-// TODO: 接入API
-const API_BASE = '/api/ai/assistant'
-
-const sendMessage = async (text) => {
-  if (!text.trim()) return
-
-  // 添加用户消息
-  messages.value.push({
-    type: 'user',
-    content: text
-  })
-
-  inputMessage.value = ''
-  scrollToBottom()
-
-  try {
-    const response = await axios.post(`${API_BASE}/chat`, {
-      message: text,
-      user_id: getCurrentUserId()
-    })
-
-    const { reply, suggestions: sug } = response.data.data
-    messages.value.push({
-      type: 'assistant',
-      content: reply
-    })
-    suggestions.value = sug || []
-  } catch (error) {
-    messages.value.push({
-      type: 'assistant',
-      content: '抱歉，服务出错了，请稍后再试。'
-    })
-  }
-
-  scrollToBottom()
-}
-
-const scrollToBottom = () => {
-  setTimeout(() => {
-    if (messagesRef.value) {
-      messagesRef.value.scrollTop = messagesRef.value.scrollHeight
-    }
-  }, 100)
-}
-
-const getCurrentUserId = () => {
-  // TODO: 获取当前登录用户ID
-  return null
-}
-
-const loadHistory = async () => {
-  // TODO: 加载对话历史
-}
-
-onMounted(() => {
-  loadHistory()
-})
 </script>
 
 <style scoped>
-.assistant-container {
+.placeholder-page {
   display: flex;
-  flex-direction: column;
-  height: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  overflow: hidden;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
-.chat-header {
-  padding: 12px 16px;
-  background: #409eff;
-  color: white;
+.placeholder-card {
+  width: 100%;
+  max-width: 540px;
+  text-align: center;
+  padding: 20px;
 }
 
-.chat-header h3 {
-  margin: 0;
+.emoji {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+h2 {
+  margin: 0 0 12px;
+  color: #303133;
+}
+
+.status {
+  color: #e6a23c;
   font-size: 16px;
+  font-weight: 500;
+  margin: 8px 0;
 }
 
-.chat-messages {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-  min-height: 300px;
+.hint {
+  color: #909399;
+  margin: 8px 0 24px;
 }
 
-.message {
-  margin-bottom: 12px;
-  display: flex;
-}
-
-.message.user {
-  justify-content: flex-end;
-}
-
-.message.assistant {
-  justify-content: flex-start;
-}
-
-.message-content {
-  max-width: 70%;
-  padding: 10px 14px;
-  border-radius: 8px;
-  line-height: 1.5;
-}
-
-.message.user .message-content {
-  background: #409eff;
-  color: white;
-}
-
-.message.assistant .message-content {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.chat-suggestions {
-  padding: 8px 16px;
-  border-top: 1px solid #eee;
-}
-
-.suggestion-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  margin-right: 8px;
-  margin-bottom: 4px;
-  background: #ecf5ff;
-  color: #409eff;
-  border-radius: 16px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.suggestion-tag:hover {
-  background: #409eff;
-  color: white;
-}
-
-.chat-input {
-  display: flex;
+.meta {
+  background: #f5f7fa;
   padding: 12px 16px;
-  border-top: 1px solid #ddd;
+  border-radius: 6px;
+  margin: 20px 0;
+  text-align: left;
+  font-size: 14px;
+  color: #606266;
 }
 
-.chat-input input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  outline: none;
+.meta p {
+  margin: 4px 0;
 }
 
-.chat-input input:focus {
-  border-color: #409eff;
+.features {
+  text-align: left;
+  background: #ecf5ff;
+  padding: 16px;
+  border-radius: 6px;
+  margin: 16px 0;
 }
 
-.chat-input button {
-  margin-left: 10px;
-  padding: 10px 20px;
-  background: #409eff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.features h4 {
+  margin: 0 0 8px;
+  color: #409eff;
 }
 
-.chat-input button:hover {
-  background: #66b1ff;
+.features ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #606266;
+  line-height: 1.8;
 }
 </style>

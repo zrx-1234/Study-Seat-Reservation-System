@@ -58,7 +58,8 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // 子路径部署时使用 /admin/ 作为路由前缀
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 

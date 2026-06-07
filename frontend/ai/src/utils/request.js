@@ -42,7 +42,8 @@ request.interceptors.response.use(
         ElMessage.error('登录已过期，请重新登录')
         localStorage.removeItem('ai_token')
         localStorage.removeItem('ai_user')
-        window.location.href = '/login'
+        const base = import.meta.env.BASE_URL || '/'
+        window.location.href = base.replace(/\/$/, '') + '/login'
       } else {
         ElMessage.error(msg)
       }
