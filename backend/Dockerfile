@@ -1,8 +1,12 @@
 # 生产环境后端镜像
-FROM python:3.11-slim
+ARG DOCKER_MIRROR=docker.1ms.run
+FROM ${DOCKER_MIRROR}/library/python:3.11-slim
 
 # 系统依赖（PyMySQL 的 cryptography 需要 build-essential & libffi）
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# 使用清华镜像源加速 apt
+RUN sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true \
+ && apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libffi-dev \
         default-libmysqlclient-dev \

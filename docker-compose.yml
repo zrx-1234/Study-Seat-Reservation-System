@@ -5,7 +5,8 @@ services:
   # MySQL 数据库
   # ============================================================
   mysql:
-    image: mysql:8.0
+    # 使用国内镜像源加速（默认 docker.1ms.run，可通过 .env 中 DOCKER_MIRROR 切换）
+    image: ${DOCKER_MIRROR:-docker.1ms.run}/library/mysql:8.0
     container_name: ssr-mysql
     restart: unless-stopped
     environment:
@@ -40,6 +41,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DOCKER_MIRROR: ${DOCKER_MIRROR:-docker.1ms.run}
     container_name: ssr-backend
     restart: unless-stopped
     environment:
@@ -73,6 +76,8 @@ services:
       # 注意 context 为项目根目录，因为 Dockerfile 需要拷贝 frontend/ 下三个项目
       context: .
       dockerfile: gateway/Dockerfile
+      args:
+        DOCKER_MIRROR: ${DOCKER_MIRROR:-docker.1ms.run}
     container_name: ssr-gateway
     restart: unless-stopped
     ports:
