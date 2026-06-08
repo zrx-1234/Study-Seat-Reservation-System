@@ -1,8 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 学生端业务页面尚未开发完成，所有受保护路由统一使用 Placeholder 占位
-const Placeholder = () => import('../views/Placeholder.vue')
-
 const routes = [
   {
     path: '/login',
@@ -12,31 +9,31 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Placeholder,
+    component: () => import('../views/Home.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/rooms',
     name: 'Rooms',
-    component: Placeholder,
+    component: () => import('../views/Rooms.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/seats',
     name: 'Seats',
-    component: Placeholder,
+    component: () => import('../views/Seats.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/reservations',
     name: 'Reservations',
-    component: Placeholder,
+    component: () => import('../views/Reservations.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/checkin',
     name: 'CheckIn',
-    component: Placeholder,
+    component: () => import('../views/CheckIn.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -54,7 +51,7 @@ const routes = [
   {
     path: '/assistant',
     name: 'Assistant',
-    component: Placeholder,
+    component: () => import('../views/Placeholder.vue'),
     meta: { requiresAuth: true }
   }
 ]
