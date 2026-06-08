@@ -161,29 +161,23 @@ const proxyRules = {
   target_username: [{ required: true, message: '请输入学生账号', trigger: 'blur' }]
 }
 
-// Mock 数据先行，等后端交付后替换为真实请求
 const fetchData = async () => {
   loading.value = true
   try {
-    // TODO: 后端交付后替换为真实接口
-    // const res = await request.get('/admin/reservations', {
-    //   params: { page: pagination.page, per_page: pagination.per_page, ...searchForm }
-    // })
-    // 当前使用 Mock 数据
-    const mockData = []
-    for (let i = 1; i <= 5; i++) {
-      mockData.push({
-        id: i,
-        user_name: `学生${i}`,
-        room_name: '理科图书馆 301',
-        seat_number: `A0${i}`,
-        start_time: '2026-06-05 08:00:00',
-        end_time: '2026-06-05 12:00:00',
-        status: i % 2 === 0 ? 'reserved' : 'checked_in'
-      })
+    const params = {
+      page: pagination.page,
+      per_page: pagination.per_page,
+      status: searchForm.status || undefined,
+      keyword: searchForm.keyword || undefined,
     }
-    tableData.value = mockData
-    pagination.total = mockData.length
+    if (searchForm.date_range && searchForm.date_range.length === 2) {
+      params.date_range = searchForm.date_range
+    }
+    const res = await request.get('/admin/reservations', { params })
+    tableData.value = res.data.items || []
+    pagination.total = res.data.total || 0
+    pagination.page = res.data.page || 1
+    pagination.per_page = res.data.per_page || 20
   } catch (err) {
     console.error('获取预约列表失败', err)
   } finally {

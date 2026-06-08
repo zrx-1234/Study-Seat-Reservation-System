@@ -413,8 +413,47 @@ def delete_seat(id):
 @require_permission('reservation:manage')
 def list_reservations():
     """全局预约记录查询（分页）"""
-    # TODO: 实现
-    return success_response(data={'items': [], 'total': 0, 'page': 1, 'per_page': 20, 'pages': 0})
+    status = request.args.get('status') or None
+    keyword = request.args.get('keyword') or None
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    # 解析日期范围
+    date_range = request.args.getlist('date_range')
+    filters = {'status': status, 'keyword': keyword}
+    if date_range and len(date_range) == 2:
+        from datetime import date, datetime
+        try:
+            filters['start_date'] = date.fromisoformat(date_range[0])
+            filters['end_date'] = date.fromisoformat(date_range[1])
+        except ValueError:
+            pass
+
+    result = reservation_service.list_all_reservations(filters=filters, page=page, per_page=per_page)
+
+    # 字段映射：将嵌套对象展开为前端表格所需的扁平字段
+    items = []
+    for item in result.get('items', []):
+        user = item.get('user') or {}
+        seat = item.get('seat') or {}
+        room = item.get('room') or {}
+        items.append({
+            'id': item['id'],
+            'user_name': user.get('name'),
+            'room_name': room.get('name'),
+            'seat_number': seat.get('seat_number'),
+            'start_time': item.get('start_time'),
+            'end_time': item.get('end_time'),
+            'status': item.get('status'),
+        })
+
+    return success_response(data={
+        'items': items,
+        'total': result['total'],
+        'page': result['page'],
+        'per_page': result['per_page'],
+        'pages': result['pages'],
+    })
 
 
 @admin_bp.route('/reservations', methods=['POST'])
