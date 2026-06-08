@@ -5,6 +5,7 @@ API-STU: 学生端接口模块
 不包含业务逻辑，业务规则全部位于 domain 层。
 """
 
+from dataclasses import asdict
 from datetime import datetime, date, time
 
 from flask import Blueprint, request
@@ -123,12 +124,7 @@ def profile():
     if not profile:
         return error_response('用户不存在', code=404)
 
-    # 补充实时统计（用户模块的统计依赖预约数据，由本模块计算后回填）
-    profile['active_reservations'] = reservation_service.get_user_active_reservation_count(user_id)
-    profile['total_violations'] = reservation_service.list_user_violations(
-        user_id, page=1, per_page=1
-    )['total']
-    return success_response(data=profile)
+    return success_response(data=asdict(profile))
 
 
 # ============================================================================
