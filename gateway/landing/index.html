@@ -8,119 +8,124 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      padding: 20px;
+      background: #f5f7fb;
+      color: #1f2937;
+      padding: 40px 20px;
     }
     .container {
-      max-width: 1000px;
-      width: 100%;
-      text-align: center;
+      max-width: 960px;
+      margin: 0 auto;
     }
     .header {
-      margin-bottom: 48px;
+      padding: 34px 0 28px;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 28px;
     }
-    .header .logo {
-      font-size: 64px;
-      margin-bottom: 16px;
+    .system-label {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: #2563eb;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
     }
     .header h1 {
-      font-size: 42px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      font-size: 34px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #111827;
     }
     .header p {
-      font-size: 18px;
-      opacity: 0.9;
+      font-size: 16px;
+      color: #6b7280;
+      line-height: 1.7;
     }
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
-      margin-bottom: 48px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 36px;
     }
     .card {
-      background: rgba(255, 255, 255, 0.15);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      padding: 32px 24px;
+      min-height: 180px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 24px;
       text-decoration: none;
-      color: #fff;
-      transition: all 0.3s ease;
-      display: block;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     }
     .card:hover {
-      background: rgba(255, 255, 255, 0.25);
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    }
-    .card .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
+      border-color: #2563eb;
+      box-shadow: 0 10px 24px rgba(31, 41, 55, 0.08);
+      transform: translateY(-2px);
     }
     .card h3 {
-      font-size: 22px;
-      margin-bottom: 8px;
+      font-size: 21px;
+      color: #111827;
+      margin-bottom: 10px;
     }
     .card p {
       font-size: 14px;
-      opacity: 0.85;
-      line-height: 1.6;
+      color: #6b7280;
+      line-height: 1.7;
     }
-    .card .status {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+    .card .action {
+      margin-top: 22px;
+      color: #2563eb;
+      font-size: 14px;
+      font-weight: 600;
     }
-    .status.ready { background: rgba(103, 194, 58, 0.4); }
-    .status.dev { background: rgba(230, 162, 60, 0.4); }
     .footer {
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      color: #9ca3af;
       font-size: 13px;
-      opacity: 0.7;
     }
-    .footer a {
-      color: #fff;
-      text-decoration: underline;
+    @media (max-width: 640px) {
+      body { padding: 24px 16px; }
+      .header { padding-top: 22px; }
+      .header h1 { font-size: 28px; }
+      .card { min-height: 160px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">📚</div>
+      <span class="system-label">SYSTEM ENTRY</span>
       <h1>自习座位预约系统</h1>
-      <p>请选择您要进入的端口</p>
+      <p>统一入口页。请选择对应端口进入系统功能。</p>
     </div>
 
     <div class="cards">
       <a href="/student/" class="card">
-        <div class="icon">🎓</div>
-        <h3>学生端</h3>
-        <p>查询自习室、预约座位、签到、查看通知</p>
-        <span class="status dev">开发中</span>
+        <div>
+          <h3>学生端</h3>
+          <p>查询自习室、预约座位、签到、查看通知与个人记录。</p>
+        </div>
+        <span class="action">进入学生端 →</span>
       </a>
 
       <a href="/admin/" class="card">
-        <div class="icon">⚙️</div>
-        <h3>管理后台</h3>
-        <p>自习室管理、座位管理、用户权限、系统配置</p>
-        <span class="status ready">已上线</span>
+        <div>
+          <h3>管理后台</h3>
+          <p>维护自习室、座位、用户权限、预约记录与系统配置。</p>
+        </div>
+        <span class="action">进入管理后台 →</span>
       </a>
 
       <a href="/ai/" class="card">
-        <div class="icon">🤖</div>
-        <h3>AI 智能助手</h3>
-        <p>自然语言查询空座、智能推荐、对话式预约</p>
-        <span class="status dev">开发中</span>
+        <div>
+          <h3>智能助手</h3>
+          <p>通过对话查询空座、获取推荐，并辅助完成预约操作。</p>
+        </div>
+        <span class="action">进入智能助手 →</span>
       </a>
     </div>
 
