@@ -803,7 +803,7 @@ def cancel_future_reservations_by_room(room_id: int) -> int:
     count = 0
     for r in reservations:
         r.status = 'cancelled'
-        r.cancelled_by = 'admin'
+        r.cancelled_by = 'system'
         r.cancel_reason = '自习室已注销'
         count += 1
     if count:

@@ -5,7 +5,7 @@ API-ADM: 管理端接口模块
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 
-from infrastructure.exceptions import success_response, error_response, ValidationError, NotFoundError, ConflictError
+from infrastructure.exceptions import success_response, error_response, ValidationError, NotFoundError, ConflictError, AuthorizationError
 from infrastructure.auth import get_current_user_id, require_permission
 from domain.user import service as user_service
 from domain.user.dto import UserCreateDTO, UserUpdateDTO, RoleCreateDTO, RoleUpdateDTO
@@ -475,15 +475,17 @@ def cancel_reservation(id):
     try:
         reservation_service.cancel_reservation(
             reservation_id=id,
-            cancelled_by='admin',
+            cancelled_by='system',
             reason=reason,
         )
-    except (NotFoundError, ConflictError) as e:
+    except (NotFoundError, ConflictError, ValidationError, AuthorizationError) as e:
         return error_response(str(e), code=e.code)
-    except Exception as e:
-        import traceback
-        current_app.logger.error(f"管理员取消预约失败: {e}\n{traceback.format_exc()}")
-        return error_response(f'取消失败: {str(e)}', code=500)
+    except Exception:
+        current_app.logger.exception(
+            '管理员取消预约异常 | admin_id=%s reservation_id=%s payload=%s',
+            get_current_user_id(), id, data
+        )
+        return error_response('取消失败，服务器内部错误', code=500)
     return success_response(data=None, message='预约已取消')
 
 
