@@ -2,7 +2,7 @@
 API-ADM: 管理端接口模块
 """
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required
 
 from infrastructure.exceptions import success_response, error_response, ValidationError, NotFoundError, ConflictError
@@ -472,11 +472,18 @@ def cancel_reservation(id):
     """管理员取消预约"""
     data = request.get_json() or {}
     reason = data.get('reason', '管理员取消')
-    reservation_service.cancel_reservation(
-        reservation_id=id,
-        cancelled_by='admin',
-        reason=reason,
-    )
+    try:
+        reservation_service.cancel_reservation(
+            reservation_id=id,
+            cancelled_by='admin',
+            reason=reason,
+        )
+    except (NotFoundError, ConflictError) as e:
+        return error_response(str(e), code=e.code)
+    except Exception as e:
+        import traceback
+        current_app.logger.error(f"管理员取消预约失败: {e}\n{traceback.format_exc()}")
+        return error_response(f'取消失败: {str(e)}', code=500)
     return success_response(data=None, message='预约已取消')
 
 
