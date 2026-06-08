@@ -1,0 +1,135 @@
+name: Weekly Release Build
+
+on:
+  schedule:
+    # UTC 周一 01:00 = 北京时间周一 09:00
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: '要构建的分支（默认 main）'
+        required: true
+        default: 'main'
+
+jobs:
+  build-release:
+    name: Build & Package
+    runs-on: ubuntu-latest
+
+    steps:
+      # ========================================================================
+      # 1. 检出代码
+      # ========================================================================
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'main' }}
+
+      # ========================================================================
+      # 2. 构建前端（三个子项目并行用矩阵太慢，串行即可）
+      # ========================================================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Admin Frontend
+        working-directory: frontend/admin
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build Student Frontend
+        working-directory: frontend/student
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build AI Frontend
+        working-directory: frontend/ai
+        run: |
+          npm ci
+          npm run build
+
+      # ========================================================================
+      # 3. 构建后端 Docker 镜像（验证部署可行性）
+      # ========================================================================
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Images
+        run: |
+          cp backend/.env.example backend/.env
+          docker compose build
+
+      # ========================================================================
+      # 4. 打包发布产物
+      # ========================================================================
+      - name: Package Release
+        run: |
+          VERSION=$(date +%Y%m%d)
+          RELEASE_DIR="study-seat-reservation-${VERSION}"
+
+          mkdir -p ${RELEASE_DIR}/frontend
+          cp -r frontend/admin/dist    ${RELEASE_DIR}/frontend/admin
+          cp -r frontend/student/dist  ${RELEASE_DIR}/frontend/student
+          cp -r frontend/ai/dist       ${RELEASE_DIR}/frontend/ai
+
+          cp -r backend                ${RELEASE_DIR}/backend
+          cp docker-compose.yml        ${RELEASE_DIR}/
+          cp DEPLOYMENT.md             ${RELEASE_DIR}/
+          cp README.md                 ${RELEASE_DIR}/
+
+          zip -r "${RELEASE_DIR}.zip" ${RELEASE_DIR}/
+          echo "RELEASE_VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "RELEASE_DIR=${RELEASE_DIR}" >> $GITHUB_ENV
+
+      - name: Package Source
+        run: |
+          VERSION=$(date +%Y%m%d)
+          git archive --format=zip --output="study-seat-source-${VERSION}.zip" HEAD
+
+      # ========================================================================
+      # 5. 上传到 Artifact（保留 30 天）
+      # ========================================================================
+      - name: Upload Release Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: study-seat-release-${{ env.RELEASE_VERSION }}
+          path: |
+            study-seat-reservation-*.zip
+            study-seat-source-*.zip
+          retention-days: 30
+
+      # ========================================================================
+      # 6. 创建 GitHub Release（可选，需要仓库写权限）
+      # ========================================================================
+      - name: Create Weekly Release
+        if: github.event_name == 'schedule'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: weekly-${{ env.RELEASE_VERSION }}
+          name: "Weekly Build ${{ env.RELEASE_VERSION }}"
+          body: |
+            自动生成周构建版本
+
+            **构建时间**: ${{ github.event.repository.updated_at }}
+            **源码分支**: main
+            **包含内容**:
+            - 前端构建产物（admin / student / ai）
+            - 后端源码
+            - Docker Compose 部署配置
+            - 部署文档
+
+            **部署方式**:
+            ```bash
+            unzip study-seat-reservation-${{ env.RELEASE_VERSION }}.zip
+            cd study-seat-reservation-${{ env.RELEASE_VERSION }}
+            docker compose up -d
+            ```
+          files: |
+            study-seat-reservation-*.zip
+            study-seat-source-*.zip
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
