@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/*.log
+**/.DS_Store
+
+# 不需要 backend 和文档
+backend/
+docs/
+tests/
+*.md

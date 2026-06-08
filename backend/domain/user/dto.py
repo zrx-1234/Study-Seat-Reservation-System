@@ -13,6 +13,7 @@ class UserDTO:
     user_type: str
     department: Optional[str] = None
     email: Optional[str] = None
+    is_active: bool = True
 
 
 @dataclass

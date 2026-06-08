@@ -20,7 +20,7 @@ def create_app():
     # 注册全局异常处理
     register_error_handlers(app)
 
-    # 注册新的API蓝本（v2架构）
+    # 注册 v2 架构 API 蓝本
     from api.student import student_bp
     from api.admin import admin_bp
     from api.ai import ai_bp
@@ -44,7 +44,6 @@ def create_app():
                     raise
     except ImportError:
         pass
-
     return app
 
 

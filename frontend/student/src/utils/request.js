@@ -49,12 +49,13 @@ request.interceptors.response.use(
         const token = localStorage.getItem('student_token')
         if (token) {
           ElMessage.error('登录已过期，请重新登录')
-          localStorage.removeItem('student_token')
-          localStorage.removeItem('student_user')
-          window.location.href = '/login'
         } else {
           ElMessage.error(msg)
         }
+        localStorage.removeItem('student_token')
+        localStorage.removeItem('student_user')
+        const base = import.meta.env.BASE_URL || '/'
+        window.location.href = base.replace(/\/$/, '') + '/login'
       } else {
         ElMessage.error(msg)
       }

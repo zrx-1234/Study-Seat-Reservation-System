@@ -3,7 +3,29 @@ __pycache__/
 *$py.class
 venv/
 .env
+# Databases
 backend/data/*.db
+
+# Node.js / Frontend
 node_modules/
 dist/
+*.tmp.*
+
+# Env files
+.env.local
+.env.production
+
+# 顶层错误生成的 lock 文件（各子项目独立管理）
+/frontend/package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# macOS
 .DS_Store
+
+# Logs
+*.log
+logs/

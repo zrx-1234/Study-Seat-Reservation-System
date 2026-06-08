@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Layout from '../components/Layout.vue'
 
 const routes = [
   {
@@ -8,56 +9,57 @@ const routes = [
   },
   {
     path: '/',
-    name: 'Dashboard',
-    component: () => import('../views/Dashboard.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/rooms',
-    name: 'Rooms',
-    component: () => import('../views/Rooms.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/seats',
-    name: 'Seats',
-    component: () => import('../views/Seats.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/reservations',
-    name: 'Reservations',
-    component: () => import('../views/Reservations.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/violations',
-    name: 'Violations',
-    component: () => import('../views/Violations.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/roles',
-    name: 'Roles',
-    component: () => import('../views/Roles.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/users',
-    name: 'Users',
-    component: () => import('../views/Users.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: () => import('../views/Settings.vue'),
-    meta: { requiresAuth: true }
+    component: Layout,
+    redirect: '/dashboard',
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: () => import('../views/Dashboard.vue')
+      },
+      {
+        path: 'rooms',
+        name: 'Rooms',
+        component: () => import('../views/Rooms.vue')
+      },
+      {
+        path: 'seats',
+        name: 'Seats',
+        component: () => import('../views/Seats.vue')
+      },
+      {
+        path: 'reservations',
+        name: 'Reservations',
+        component: () => import('../views/Reservations.vue')
+      },
+      {
+        path: 'violations',
+        name: 'Violations',
+        component: () => import('../views/Violations.vue')
+      },
+      {
+        path: 'roles',
+        name: 'Roles',
+        component: () => import('../views/Roles.vue')
+      },
+      {
+        path: 'users',
+        name: 'Users',
+        component: () => import('../views/Users.vue')
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('../views/Settings.vue')
+      }
+    ]
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  // 子路径部署时使用 /admin/ 作为路由前缀
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 })
 

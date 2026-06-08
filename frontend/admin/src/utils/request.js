@@ -42,7 +42,9 @@ request.interceptors.response.use(
         ElMessage.error('登录已过期，请重新登录')
         localStorage.removeItem('admin_token')
         localStorage.removeItem('admin_user')
-        window.location.href = '/login'
+        // 跳转到当前应用的 login（使用 BASE_URL 适配子路径部署）
+        const base = import.meta.env.BASE_URL || '/'
+        window.location.href = base.replace(/\/$/, '') + '/login'
       } else {
         ElMessage.error(msg)
       }

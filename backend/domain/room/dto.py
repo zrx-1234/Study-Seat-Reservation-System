@@ -11,6 +11,7 @@ class RoomDTO:
     id: int
     name: str
     location: Optional[str]
+    capacity: int
     room_type: str
     open_time: str
     close_time: str
