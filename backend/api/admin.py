@@ -470,8 +470,14 @@ def create_reservation():
 @require_permission('reservation:manage')
 def cancel_reservation(id):
     """管理员取消预约"""
-    # TODO: 实现
-    return success_response(data=None)
+    data = request.get_json() or {}
+    reason = data.get('reason', '管理员取消')
+    reservation_service.cancel_reservation(
+        reservation_id=id,
+        cancelled_by='admin',
+        reason=reason,
+    )
+    return success_response(data=None, message='预约已取消')
 
 
 @admin_bp.route('/violations', methods=['GET'])

@@ -208,8 +208,7 @@ const handleCancel = (row) => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(async () => {
-    // TODO: 后端交付后启用
-    // await request.post(`/admin/reservations/${row.id}/cancel`)
+    await request.post(`/admin/reservations/${row.id}/cancel`)
     ElMessage.success('取消成功')
     fetchData()
   }).catch(() => {})
