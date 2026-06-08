@@ -343,12 +343,12 @@ class TestGenerateSignInCode:
 
 class TestValidateSignInCode:
     def test_valid_code(self, db_session, room):
-        query_date = date(2026, 5, 21)
+        query_date = date.today()
         dto = room_service.generate_sign_in_code(room.id, query_date)
         assert room_service.validate_sign_in_code(room.id, dto.code, query_date) is True
 
     def test_wrong_code(self, db_session, room):
-        query_date = date(2026, 5, 21)
+        query_date = date.today()
         room_service.generate_sign_in_code(room.id, query_date)
         assert room_service.validate_sign_in_code(room.id, 'WRONG1', query_date) is False
 
@@ -358,7 +358,7 @@ class TestValidateSignInCode:
 
 class TestGetSignInCode:
     def test_returns_current_code(self, db_session, room):
-        query_date = date(2026, 5, 21)
+        query_date = date.today()
         dto = room_service.generate_sign_in_code(room.id, query_date)
         assert room_service.get_sign_in_code(room.id, query_date) == dto.code
 
