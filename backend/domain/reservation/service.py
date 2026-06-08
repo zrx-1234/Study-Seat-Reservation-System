@@ -867,6 +867,7 @@ def get_reservation_stats(today: date = None) -> dict:
 
 def _safe_notify(user_id: int, notification_type: str, content: str,
                  related_entity_type: str = None, related_entity_id: int = None) -> None:
+    """发送通知，失败不阻断主流程。主事务已提交时不执行 rollback。"""
     try:
         notification_service.send_notification(
             user_id, notification_type, content,
@@ -874,4 +875,6 @@ def _safe_notify(user_id: int, notification_type: str, content: str,
             related_entity_id=related_entity_id,
         )
     except Exception:
-        db.session.rollback()
+        # 通知失败仅静默忽略，不阻断预约取消主流程
+        # 此处不调用 db.session.rollback()，因为主事务可能已提交
+        pass
