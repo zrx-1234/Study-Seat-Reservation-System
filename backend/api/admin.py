@@ -470,7 +470,7 @@ def create_reservation():
 @require_permission('reservation:manage')
 def cancel_reservation(id):
     """管理员取消预约"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     reason = data.get('reason', '管理员取消')
     try:
         reservation_service.cancel_reservation(
