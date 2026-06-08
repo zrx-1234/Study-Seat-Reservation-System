@@ -264,7 +264,7 @@ def cancel_reservation(reservation_id: int, cancelled_by: str,
 
     约束：
       - 只有状态为 'reserved'（未签到）的预约可被 user/admin 取消；
-      - system 取消（违约判定）不受此限制；
+      - admin 取消（违约判定）不受此限制；
       - 学生只能取消自己的预约。
     """
     reservation = db.session.get(Reservation, reservation_id)
@@ -275,7 +275,7 @@ def cancel_reservation(reservation_id: int, cancelled_by: str,
         if reservation.user_id != acting_user_id:
             raise AuthorizationError('无权取消他人的预约')
 
-    if cancelled_by != 'system' and reservation.status != 'reserved':
+    if cancelled_by != 'admin' and reservation.status != 'reserved':
         raise ConflictError('当前状态的预约不可取消')
 
     reservation.status = 'cancelled'
@@ -803,7 +803,7 @@ def cancel_future_reservations_by_room(room_id: int) -> int:
     count = 0
     for r in reservations:
         r.status = 'cancelled'
-        r.cancelled_by = 'system'
+        r.cancelled_by = 'admin'
         r.cancel_reason = '自习室已注销'
         count += 1
     if count:
