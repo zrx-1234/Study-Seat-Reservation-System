@@ -8,6 +8,16 @@ from infrastructure.exceptions import register_error_handlers
 from infrastructure.auth import register_jwt_callbacks, create_token
 
 
+@pytest.fixture(autouse=True)
+def isolate_ai_env(monkeypatch):
+    """隔离AI相关环境变量，避免测试误调用真实LLM。"""
+    monkeypatch.setenv('LLM_PROVIDER', 'mock')
+    monkeypatch.setenv('USE_LLM_REPLY', 'false')
+    monkeypatch.setenv('LLM_INTENT_RECOGNITION', 'false')
+    monkeypatch.setenv('AI_RATE_LIMIT_PER_USER', '30')
+    monkeypatch.setenv('AI_RATE_LIMIT_WINDOW', '60')
+
+
 @pytest.fixture
 def app():
     """测试用Flask应用固件"""

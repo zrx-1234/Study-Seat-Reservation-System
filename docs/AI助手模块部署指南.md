@@ -18,10 +18,7 @@ cd backend
 pip install flask flask-jwt-extended flask-sqlalchemy flask-migrate flask-cors
 
 # AI模块依赖
-pip install python-dotenv
-
-# 可选依赖（如果使用OpenAI）
-pip install openai
+pip install python-dotenv openai
 
 # 测试依赖
 pip install pytest pytest-cov
@@ -32,6 +29,8 @@ pip install pytest pytest-cov
 ```bash
 pip install -r requirements.txt
 ```
+
+`requirements.txt` 已包含 OpenAI SDK。启用真实 API 前请配置 `.env`，不要提交真实 API key。
 
 ### 2. 环境配置
 
@@ -106,7 +105,9 @@ AI_RATE_LIMIT_PER_USER=30
 AI_RATE_LIMIT_WINDOW=60
 
 # 功能配置
+# auto: 关键词低置信度时调用LLM；true: 强制LLM；false: 只用关键词
 LLM_INTENT_RECOGNITION=auto
+# true: 支持的场景使用LLM生成回复；false: 使用本地模板
 USE_LLM_REPLY=false
 ```
 

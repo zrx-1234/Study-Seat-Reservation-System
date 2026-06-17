@@ -416,7 +416,11 @@ def generate_reply(action_result: ActionResultDTO, user_message: str, intent: In
     data = action_result.data or {}
 
     # 检查是否启用LLM生成回复
-    use_llm_reply = os.getenv('USE_LLM_REPLY', 'false').lower() == 'true'
+    provider = os.getenv('LLM_PROVIDER', 'mock').strip().lower()
+    use_llm_reply = (
+        os.getenv('USE_LLM_REPLY', 'false').lower() == 'true'
+        and provider != 'mock'
+    )
 
     # 根据意图类型生成不同的回复
     if intent.intent_type == 'query_empty_seat':
@@ -507,7 +511,7 @@ def _generate_reply_with_llm(user_message: str, data: Dict[str, Any], intent_typ
     import os
     import json
 
-    provider = os.getenv('LLM_PROVIDER', 'mock')
+    provider = os.getenv('LLM_PROVIDER', 'mock').strip().lower()
     if provider == 'mock':
         # Mock客户端不适合生成回复，直接返回模板
         raise Exception("Mock客户端不支持生成回复")

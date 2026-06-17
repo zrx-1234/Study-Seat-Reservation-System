@@ -1,4 +1,9 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
 from flask import Flask
+
+load_dotenv(Path(__file__).resolve().parent / '.env')
 
 from common.config import Config
 from extensions import init_extensions

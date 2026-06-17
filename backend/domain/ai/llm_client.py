@@ -105,19 +105,19 @@ class MockLLMClient(LLMClient):
 # ============================================================================
 
 class OpenAIClient(LLMClient):
-    """OpenAI API客户端 - TODO: 需要安装 openai 包"""
+    """OpenAI API客户端"""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo"):
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
         """
         初始化OpenAI客户端
 
         Args:
             api_key: API密钥，如不提供则从环境变量读取
-            model: 模型名称
+            model: 模型名称，如不提供则从环境变量读取
         """
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
-        self.model = model
-        self.base_url = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+        self.api_key = (api_key or os.getenv('OPENAI_API_KEY') or '').strip()
+        self.model = (model or os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')).strip()
+        self.base_url = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1').strip()
 
         if not self.api_key:
             raise ValueError("OpenAI API key not found. Set OPENAI_API_KEY environment variable.")
@@ -152,7 +152,14 @@ class OpenAIClient(LLMClient):
                     timeout=kwargs.get('timeout', 30)  # 30秒超时
                 )
 
-                return response.choices[0].message.content
+                if not response.choices:
+                    raise Exception("OpenAI API returned empty choices")
+
+                content = response.choices[0].message.content
+                if not content:
+                    raise Exception("OpenAI API returned empty response")
+
+                return content
 
             except ImportError:
                 # 缺少依赖包，不重试
@@ -329,12 +336,13 @@ def create_llm_client(provider: str = "mock") -> LLMClient:
     Returns:
         LLMClient实例
     """
-    provider = provider.lower()
+    provider = (provider or "mock").strip().lower()
 
     if provider == "mock":
         return MockLLMClient()
     elif provider == "openai":
-        return OpenAIClient()
+        model = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo').strip()
+        return OpenAIClient(model=model)
     else:
         raise ValueError(f"Unsupported LLM provider: {provider}")
 
@@ -352,11 +360,11 @@ def call_llm(prompt: str, context: List[Dict] = None) -> str:
     当前实现：使用Mock客户端作为保底方案
     """
     # 默认使用Mock客户端
-    provider = os.getenv('LLM_PROVIDER', 'mock')
+    provider = os.getenv('LLM_PROVIDER', 'mock').strip().lower()
     client = create_llm_client(provider)
 
     # 构造消息列表
-    messages = context or []
+    messages = list(context) if context else []
     messages.append({"role": "user", "content": prompt})
 
     return client.chat(messages)

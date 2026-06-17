@@ -71,6 +71,14 @@ class TestAIChatBasic:
         assert 'X-RateLimit-Limit' in resp.headers
         assert 'X-RateLimit-Remaining' in resp.headers
 
+    def test_chat_uses_rate_limit_window_config(self, client, auth_headers, monkeypatch):
+        """响应头应使用配置的限流窗口"""
+        monkeypatch.setenv('AI_RATE_LIMIT_WINDOW', '10')
+        resp = client.post('/api/v1/ai/chat',
+                           json={'message': '你好'},
+                           headers=auth_headers)
+        assert resp.headers['X-RateLimit-Window'] == '10'
+
 
 class TestSeatQueryIntent:
     """测试座位查询意图"""

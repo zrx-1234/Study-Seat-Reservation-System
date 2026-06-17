@@ -173,10 +173,10 @@ curl -X POST http://localhost:5000/api/v1/ai/chat \
 创建 `.env` 文件（从 `.env.example` 复制）:
 
 ```bash
-# LLM提供商选择
-LLM_PROVIDER=mock          # mock | openai | claude
+# LLM提供商选择（当前实现: mock | openai；Claude为预留项，暂未实现）
+LLM_PROVIDER=mock
 
-# OpenAI配置
+# OpenAI配置（LLM_PROVIDER=openai 时使用）
 OPENAI_API_KEY=sk-your-key
 OPENAI_MODEL=gpt-3.5-turbo
 OPENAI_BASE_URL=https://api.openai.com/v1
@@ -198,7 +198,7 @@ USE_LLM_REPLY=false            # true | false
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
-| `LLM_PROVIDER` | `mock` | LLM提供商：mock（测试）/ openai / claude |
+| `LLM_PROVIDER` | `mock` | LLM提供商：mock（测试）/ openai；Claude暂未实现 |
 | `OPENAI_API_KEY` | - | OpenAI API密钥 |
 | `OPENAI_MODEL` | `gpt-3.5-turbo` | 使用的模型 |
 | `AI_RATE_LIMIT_PER_USER` | `30` | 每用户限流次数 |
@@ -256,13 +256,20 @@ curl -X POST .../ai/chat -d '{"message": "要靠窗的", "session_id": "xxx"}'
 ### Q1: 如何启用OpenAI？
 
 **A**: 
-1. 安装依赖: `pip install openai`
+1. 安装依赖: `pip install -r requirements.txt`
 2. 配置 `.env` 文件：
    ```
    LLM_PROVIDER=openai
    OPENAI_API_KEY=sk-your-key
+   OPENAI_MODEL=gpt-3.5-turbo
+   OPENAI_BASE_URL=https://api.openai.com/v1
+   USE_LLM_REPLY=true
+   LLM_INTENT_RECOGNITION=auto
    ```
-3. 重启服务
+3. 可先运行 `python test_llm.py` 做连通性测试
+4. 重启服务
+
+注意：不要提交 `.env` 或真实 API key。
 
 ### Q2: 如何调整限流配置？
 
