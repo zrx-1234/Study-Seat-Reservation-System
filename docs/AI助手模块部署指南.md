@@ -105,8 +105,7 @@ AI_RATE_LIMIT_PER_USER=30
 AI_RATE_LIMIT_WINDOW=60
 
 # 功能配置
-# auto: 关键词低置信度时调用LLM；true: 强制LLM；false: 只用关键词
-LLM_INTENT_RECOGNITION=auto
+# 意图识别始终优先调用当前 LLM_PROVIDER，失败时降级到关键词规则
 # true: 支持的场景使用LLM生成回复；false: 使用本地模板
 USE_LLM_REPLY=false
 ```
@@ -351,16 +350,13 @@ REDIS_URL=redis://localhost:6379/1
 
 ## 成本优化
 
-### 1. 减少LLM调用
+### 1. 减少LLM生成回复调用
 
 ```bash
 # 启用缓存
 # 相同查询使用缓存结果，5分钟有效
 
-# 优先使用关键词匹配
-LLM_INTENT_RECOGNITION=auto      # 只在必要时调用LLM
-
-# 禁用LLM生成回复
+# 意图识别始终优先调用LLM；回复生成仍可使用模板以控制成本
 USE_LLM_REPLY=false              # 使用模板回复
 ```
 

@@ -6,7 +6,7 @@ MOD-AI: 智能助手模块 - 服务接口
 """
 
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, date, timedelta, time as dt_time
 import time
 from domain.ai.dto import ChatResponseDTO, ChatMessageDTO, IntentDTO, ActionResultDTO
 from domain.ai import intent_parser, session_store
@@ -200,6 +200,61 @@ def clear_session(session_id: str):
 # 内部核心函数（不对外暴露给非AI模块）
 # ============================================================================
 
+def _parse_slot_date(value) -> date:
+    """将AI槽位中的日期转为 date；缺省或无法识别时使用今天。"""
+    if not value:
+        return date.today()
+
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+
+    text = str(value).strip().lower()
+    if text in ('today', '今天', '今日'):
+        return date.today()
+    if text in ('tomorrow', '明天', '明日'):
+        return date.today() + timedelta(days=1)
+
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return date.today()
+
+
+def _parse_slot_time(value):
+    """将AI槽位中的时间转为 time；无法识别时返回 None。"""
+    if not value:
+        return None
+
+    if isinstance(value, dt_time):
+        return value
+
+    try:
+        parts = str(value).strip().split(':')
+        if len(parts) == 1:
+            return dt_time(int(parts[0]), 0)
+        if len(parts) >= 2:
+            return dt_time(int(parts[0]), int(parts[1]))
+    except (TypeError, ValueError):
+        return None
+
+    return None
+
+
+def _parse_slot_bool(value):
+    """将AI槽位中的布尔偏好转为 bool/None。"""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+
+    text = str(value).strip().lower()
+    if text in ('true', '1', 'yes', 'y', '是', '有'):
+        return True
+    if text in ('false', '0', 'no', 'n', '否', '无'):
+        return False
+    return None
+
+
 def execute_intent(intent: IntentDTO, user_id: int) -> ActionResultDTO:
     """
     根据解析后的意图，调用对应领域模块执行查询或操作
@@ -246,46 +301,60 @@ def execute_intent(intent: IntentDTO, user_id: int) -> ActionResultDTO:
 
 def _handle_query_empty_seat(slots: Dict[str, Any], user_id: int) -> ActionResultDTO:
     """处理查询空座位意图"""
-    from datetime import date as date_module
+    from domain.reservation import service as resv_service
 
     try:
-        # 提取参数
-        query_date_str = slots.get('date', date_module.today().isoformat())
-        has_window = slots.get('has_window')
-        has_plug = slots.get('has_plug')
+        query_date = _parse_slot_date(slots.get('date'))
+        start_time = _parse_slot_time(slots.get('start_time'))
+        end_time = _parse_slot_time(slots.get('end_time'))
 
-        # TODO: 等待管理员组实现 MOD-ROOM.search_seats() 后对接
-        # 当前使用Mock数据
+        # 时间槽位不完整时不按时间过滤，避免误筛掉可用座位
+        if not (start_time and end_time):
+            start_time = None
+            end_time = None
+
+        search_result = resv_service.search_seats(
+            query_date=query_date,
+            start_time=start_time,
+            end_time=end_time,
+            has_window=_parse_slot_bool(slots.get('has_window')),
+            has_plug=_parse_slot_bool(slots.get('has_plug')),
+            room_type=slots.get('room_type'),
+            department=slots.get('department'),
+            page=1,
+            per_page=20,
+        )
+
+        items = search_result.get('items', [])
+        recommendations = [
+            {
+                'seat_id': item.get('id'),
+                'seat_number': item.get('seat_number'),
+                'room_id': item.get('room_id'),
+                'room_name': item.get('room_name'),
+                'room_location': item.get('room_location'),
+                'has_window': item.get('has_window'),
+                'has_plug': item.get('has_plug'),
+                'available_slots': item.get('available_slots', []),
+                'status': item.get('status'),
+            }
+            for item in items
+        ]
+
         result = {
-            'date': query_date_str,
-            'available_count': 12,
-            'recommendations': [
-                {
-                    'seat_id': 1,
-                    'seat_number': 'A01',
-                    'room_name': '理科图书馆301',
-                    'room_location': '理科楼3层',
-                    'has_window': True,
-                    'has_plug': True,
-                    'available_slots': ['08:00-22:00']
-                },
-                {
-                    'seat_id': 2,
-                    'seat_number': 'A02',
-                    'room_name': '理科图书馆301',
-                    'room_location': '理科楼3层',
-                    'has_window': has_window if has_window is not None else False,
-                    'has_plug': has_plug if has_plug is not None else True,
-                    'available_slots': ['14:00-22:00']
-                }
-            ]
+            'date': query_date.isoformat(),
+            'available_count': search_result.get('total', len(items)),
+            'recommendations': recommendations,
+            'items': items,
+            'total': search_result.get('total', len(items)),
+            'page': search_result.get('page', 1),
+            'per_page': search_result.get('per_page', 20),
+            'pages': search_result.get('pages', 0),
         }
 
         return ActionResultDTO(success=True, data=result)
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return ActionResultDTO(success=False, error=f'查询座位时出错: {str(e)}')
 
 
@@ -294,20 +363,10 @@ def _handle_query_my_reservation(user_id: int) -> ActionResultDTO:
     from domain.reservation import service as resv_service
 
     try:
-        # TODO: 调用 MOD-RESV.get_user_active_reservations()
-        # 当前实现：返回Mock数据
+        reservations = resv_service.get_user_active_reservations(user_id)
         result = {
-            'reservation_count': 1,
-            'reservations': [
-                {
-                    'id': 1,
-                    'seat_number': 'A05',
-                    'room_name': '理科图书馆301',
-                    'start_time': '2026-06-06 14:00',
-                    'end_time': '2026-06-06 16:00',
-                    'status': 'reserved'
-                }
-            ]
+            'reservation_count': len(reservations),
+            'reservations': reservations,
         }
 
         return ActionResultDTO(success=True, data=result)
@@ -318,18 +377,20 @@ def _handle_query_my_reservation(user_id: int) -> ActionResultDTO:
 
 def _handle_query_room_info(slots: Dict[str, Any]) -> ActionResultDTO:
     """处理查询自习室信息意图"""
-    from domain.room import service as room_service
+    from domain.reservation import service as resv_service
 
     try:
-        # TODO: 调用 MOD-ROOM.list_rooms()
-        # 当前实现：返回Mock数据
+        query_date = _parse_slot_date(slots.get('date'))
+        rooms_result = resv_service.list_rooms_for_student(
+            room_type=slots.get('room_type'),
+            query_date=query_date,
+        )
+        rooms = rooms_result.get('items', [])
         result = {
-            'room_count': 3,
-            'rooms': [
-                {'id': 1, 'name': '理科图书馆301', 'location': '理科楼3层'},
-                {'id': 2, 'name': '文科图书馆201', 'location': '文科楼2层'},
-                {'id': 3, 'name': '主图书馆自习区', 'location': '主楼4层'}
-            ]
+            'date': query_date.isoformat(),
+            'room_count': len(rooms),
+            'rooms': rooms,
+            'items': rooms,
         }
 
         return ActionResultDTO(success=True, data=result)
@@ -343,11 +404,22 @@ def _handle_query_notification(user_id: int) -> ActionResultDTO:
     from domain.notification import service as notif_service
 
     try:
-        # TODO: 调用 MOD-NOTIF.get_unread_count()
-        # 当前实现：返回Mock数据
+        notifications_result = notif_service.list_notifications(
+            user_id=user_id,
+            is_read=False,
+            page=1,
+            per_page=5,
+        )
+        items = notifications_result.get('items', [])
         result = {
-            'unread_count': 2,
-            'latest_notification': '您有一个预约即将开始'
+            'unread_count': notifications_result.get('unread_count', 0),
+            'latest_notification': items[0].get('content', '') if items else '',
+            'notifications': items,
+            'items': items,
+            'total': notifications_result.get('total', len(items)),
+            'page': notifications_result.get('page', 1),
+            'per_page': notifications_result.get('per_page', 5),
+            'pages': notifications_result.get('pages', 0),
         }
 
         return ActionResultDTO(success=True, data=result)

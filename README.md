@@ -23,8 +23,9 @@ copy .env.example .env
 ```env
 LLM_PROVIDER=mock
 USE_LLM_REPLY=false
-LLM_INTENT_RECOGNITION=auto
 ```
+
+意图识别会始终优先调用当前 `LLM_PROVIDER` 对应的 LLM 客户端；如果 LLM 调用失败，会自动降级到关键词规则。`mock` provider 不访问外部 API，适合开发、测试和 CI。
 
 启用 OpenAI：
 
@@ -34,13 +35,12 @@ OPENAI_API_KEY=sk-your-key
 OPENAI_MODEL=gpt-3.5-turbo
 OPENAI_BASE_URL=https://api.openai.com/v1
 USE_LLM_REPLY=true
-LLM_INTENT_RECOGNITION=auto
 ```
 
 说明：
 
 - `USE_LLM_REPLY=true`：在支持的场景下使用真实 LLM 生成更自然的回复。
-- `LLM_INTENT_RECOGNITION=auto`：关键词低置信度时才调用 LLM；如需强制测试 LLM 意图识别，可设为 `true`。
+- 意图识别始终优先使用 LLM；关键词规则仅作为槽位补充和 LLM 失败时的降级方案。
 - 不要提交 `.env` 或真实 API Key。
 
 手动连通性测试：

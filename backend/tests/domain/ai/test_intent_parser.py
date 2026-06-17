@@ -3,6 +3,7 @@ AI模块单元测试 - 意图识别测试
 """
 import pytest
 from domain.ai.intent_parser import (
+    parse_intent,
     parse_intent_by_keywords,
     extract_date,
     extract_time_range,
@@ -13,6 +14,40 @@ from datetime import date, timedelta
 
 class TestIntentParser:
     """测试意图识别功能"""
+
+    def test_parse_intent_prefers_llm_result(self, monkeypatch):
+        """主入口应始终优先使用LLM识别结果"""
+        def fake_parse_intent_by_llm(message, context=None):
+            return {
+                'intent_type': 'query_notification',
+                'confidence': 0.99,
+                'slots': {'source': 'llm'}
+            }
+
+        monkeypatch.setattr(
+            'domain.ai.intent_parser.parse_intent_by_llm',
+            fake_parse_intent_by_llm
+        )
+
+        result = parse_intent('今晚有空座吗')
+
+        assert result['intent_type'] == 'query_notification'
+        assert result['confidence'] == 0.99
+        assert result['slots']['source'] == 'llm'
+
+    def test_parse_intent_falls_back_to_keywords_when_llm_fails(self, monkeypatch):
+        """LLM失败时应降级到关键词识别"""
+        def raise_error(message, context=None):
+            raise Exception('LLM不可用')
+
+        monkeypatch.setattr('domain.ai.intent_parser.parse_intent_by_llm', raise_error)
+
+        result = parse_intent('今晚有空座吗')
+
+        assert result['intent_type'] == 'query_empty_seat'
+        assert result['confidence'] > 0.6
+        assert result['slots']['start_time'] == '18:00'
+        assert result['slots']['end_time'] == '22:00'
 
     def test_query_empty_seat_intent(self):
         """测试查询空座位意图"""

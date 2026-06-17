@@ -223,10 +223,10 @@ def parse_intent(message: str, context: Dict[str, Any] = None) -> Dict[str, Any]
     """
     解析用户自然语言消息，识别意图与提取槽位
 
-    实现策略（两级 + 降级）：
-      1. 先使用关键词匹配（Level 1）
-      2. 如果置信度低于阈值，则使用LLM增强（Level 2）
-      3. 如果LLM失败，降级回关键词匹配结果
+    实现策略：
+      1. 始终优先调用 LLM 进行意图识别
+      2. 使用关键词规则提取的槽位作为补充
+      3. 如果 LLM 调用失败，降级回关键词匹配结果
 
     Args:
         message: 用户输入消息
@@ -239,51 +239,26 @@ def parse_intent(message: str, context: Dict[str, Any] = None) -> Dict[str, Any]
             "slots": {"date": "2026-06-05", "has_window": true}
         }
     """
-    # TODO: 实现意图识别逻辑
-    # 当前实现：关键词匹配为主，LLM作为增强，完善降级策略
-
-    # Level 1: 关键词匹配（保底方案）
+    # 关键词匹配仅作为槽位补充和LLM失败时的保底方案
     keyword_result = parse_intent_by_keywords(message, context)
 
-    # 决定是否使用LLM增强
-    confidence_threshold = 0.6
-    use_llm = keyword_result['confidence'] < confidence_threshold
+    try:
+        llm_result = parse_intent_by_llm(message, context)
 
-    # 也可以通过环境变量强制启用/禁用LLM
-    import os
-    llm_enabled = os.getenv('LLM_INTENT_RECOGNITION', 'auto')
+        # 保留关键词规则稳定提取出的日期/时间/偏好槽位，再用LLM槽位覆盖同名字段
+        merged_slots = dict(keyword_result.get('slots', {}))
+        merged_slots.update(llm_result.get('slots', {}))
+        llm_result['slots'] = merged_slots
 
-    if llm_enabled == 'false':
-        # 强制禁用LLM，只使用关键词
+        if 'intent_type' not in llm_result:
+            llm_result['intent_type'] = 'unknown'
+        if 'confidence' not in llm_result:
+            llm_result['confidence'] = 0.5
+
+        print(f"使用LLM识别结果: intent={llm_result['intent_type']}, confidence={llm_result['confidence']}")
+        return llm_result
+
+    except Exception as e:
+        # LLM失败时降级到关键词匹配结果，保证AI助手仍可用
+        print(f"LLM意图识别失败，降级到关键词匹配: {e}")
         return keyword_result
-    elif llm_enabled == 'true':
-        # 强制启用LLM
-        use_llm = True
-
-    # Level 2: 如果需要，尝试使用LLM增强
-    if use_llm:
-        try:
-            llm_result = parse_intent_by_llm(message, context)
-
-            # 如果LLM结果更可信，使用LLM结果
-            if llm_result['confidence'] > keyword_result['confidence']:
-                # 但是保留关键词匹配提取的槽位（作为补充）
-                # 合并槽位：LLM的槽位 + 关键词的槽位
-                merged_slots = dict(keyword_result['slots'])
-                merged_slots.update(llm_result['slots'])
-                llm_result['slots'] = merged_slots
-
-                print(f"使用LLM识别结果: intent={llm_result['intent_type']}, confidence={llm_result['confidence']}")
-                return llm_result
-            else:
-                # LLM置信度不高，使用关键词结果
-                print(f"LLM置信度较低，使用关键词匹配结果")
-                return keyword_result
-
-        except Exception as e:
-            # LLM失败时降级到关键词匹配结果
-            print(f"LLM意图识别失败，降级到关键词匹配: {e}")
-            return keyword_result
-
-    # 默认返回关键词匹配结果
-    return keyword_result

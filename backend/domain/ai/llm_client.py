@@ -70,34 +70,25 @@ class MockLLMClient(LLMClient):
             return "我是自习室预约助手，可以帮您查询空座位、管理预约。有什么需要帮助的吗？"
 
     def parse_intent(self, user_message: str, context: Optional[List[Dict]] = None) -> Dict[str, Any]:
-        """Mock意图识别 - 返回预设意图"""
-        message_lower = user_message.lower()
+        """Mock意图识别 - 复用本地规则，模拟LLM返回格式"""
+        from domain.ai.intent_parser import parse_intent_by_keywords
 
-        # 简单关键词匹配
-        if any(kw in message_lower for kw in ['座位', '空座', '位置', '自习室']):
-            return {
-                'intent': 'query_empty_seat',
-                'confidence': 0.9,
-                'slots': {'date': 'today'}
-            }
-        elif '我的' in message_lower and '预约' in message_lower:
-            return {
-                'intent': 'query_my_reservation',
-                'confidence': 0.95,
-                'slots': {}
-            }
-        elif '通知' in message_lower:
-            return {
-                'intent': 'query_notification',
-                'confidence': 0.9,
-                'slots': {}
-            }
-        else:
-            return {
-                'intent': 'chitchat',
-                'confidence': 0.6,
-                'slots': {}
-            }
+        result = parse_intent_by_keywords(user_message)
+        intent = result.get('intent_type', 'unknown')
+        confidence_floor = {
+            'query_empty_seat': 0.9,
+            'query_my_reservation': 0.95,
+            'query_notification': 0.9,
+            'query_room_info': 0.85,
+            'system_faq': 0.8,
+            'chitchat': 0.8,
+            'unknown': 0.5,
+        }
+        return {
+            'intent': intent,
+            'confidence': max(result.get('confidence', 0.5), confidence_floor.get(intent, 0.5)),
+            'slots': result.get('slots', {})
+        }
 
 
 # ============================================================================

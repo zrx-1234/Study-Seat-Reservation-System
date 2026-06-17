@@ -190,7 +190,7 @@ AI_RATE_LIMIT_PER_USER=30
 AI_RATE_LIMIT_WINDOW=60
 
 # 功能开关
-LLM_INTENT_RECOGNITION=auto    # auto | true | false
+# 意图识别始终优先调用当前 LLM_PROVIDER，失败时降级到关键词规则
 USE_LLM_REPLY=false            # true | false
 ```
 
@@ -203,8 +203,9 @@ USE_LLM_REPLY=false            # true | false
 | `OPENAI_MODEL` | `gpt-3.5-turbo` | 使用的模型 |
 | `AI_RATE_LIMIT_PER_USER` | `30` | 每用户限流次数 |
 | `AI_RATE_LIMIT_WINDOW` | `60` | 限流时间窗口（秒） |
-| `LLM_INTENT_RECOGNITION` | `auto` | LLM意图识别：auto（自动）/ true（强制）/ false（禁用） |
 | `USE_LLM_REPLY` | `false` | 是否使用LLM生成回复 |
+
+说明：意图识别始终优先使用 `LLM_PROVIDER` 对应客户端；关键词规则仅用于槽位补充和 LLM 失败时的降级。
 
 ---
 
@@ -264,7 +265,6 @@ curl -X POST .../ai/chat -d '{"message": "要靠窗的", "session_id": "xxx"}'
    OPENAI_MODEL=gpt-3.5-turbo
    OPENAI_BASE_URL=https://api.openai.com/v1
    USE_LLM_REPLY=true
-   LLM_INTENT_RECOGNITION=auto
    ```
 3. 可先运行 `python test_llm.py` 做连通性测试
 4. 重启服务

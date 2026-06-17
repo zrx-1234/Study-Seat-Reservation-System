@@ -2,8 +2,40 @@
 AI助手API测试
 覆盖: POST /api/v1/ai/chat, GET /api/v1/ai/history, POST /api/v1/ai/clear
 """
+from datetime import time
+
 import pytest
 import json
+
+from domain.room.models import Seat, StudyRoom
+from extensions import db
+
+
+@pytest.fixture
+def available_seat(db_session):
+    """为AI座位查询准备真实可用座位数据"""
+    room = StudyRoom(
+        name='测试自习室301',
+        location='测试楼3层',
+        capacity=1,
+        room_type='public',
+        open_time=time(7, 0),
+        close_time=time(23, 0),
+        is_active=True,
+    )
+    db.session.add(room)
+    db.session.flush()
+
+    seat = Seat(
+        room_id=room.id,
+        seat_number='A01',
+        has_window=True,
+        has_plug=True,
+        status='available',
+    )
+    db.session.add(seat)
+    db.session.commit()
+    return seat
 
 
 class TestAIChatAuth:
@@ -83,7 +115,7 @@ class TestAIChatBasic:
 class TestSeatQueryIntent:
     """测试座位查询意图"""
 
-    def test_query_empty_seat(self, client, auth_headers):
+    def test_query_empty_seat(self, client, auth_headers, available_seat):
         """查询空座位应返回search_seats动作"""
         resp = client.post('/api/v1/ai/chat',
                            json={'message': '今晚有空座吗'},
@@ -96,7 +128,7 @@ class TestSeatQueryIntent:
         assert 'recommendations' in payload
         assert len(payload['recommendations']) > 0
 
-    def test_query_seat_with_window_preference(self, client, auth_headers):
+    def test_query_seat_with_window_preference(self, client, auth_headers, available_seat):
         """查询靠窗座位"""
         resp = client.post('/api/v1/ai/chat',
                            json={'message': '帮我找靠窗的座位'},
@@ -105,7 +137,7 @@ class TestSeatQueryIntent:
         data = resp.get_json()
         assert data['data']['action'] == 'search_seats'
 
-    def test_query_seat_with_plug_preference(self, client, auth_headers):
+    def test_query_seat_with_plug_preference(self, client, auth_headers, available_seat):
         """查询有插座的座位"""
         resp = client.post('/api/v1/ai/chat',
                            json={'message': '有插座的座位'},
