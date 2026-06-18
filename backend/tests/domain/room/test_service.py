@@ -326,14 +326,13 @@ class TestGenerateSignInCode:
         dto = room_service.generate_sign_in_code(room.id, query_date)
         assert dto.room_id == room.id
         assert dto.valid_date == query_date
-        assert len(dto.code) == 6
-        assert dto.code.isalnum()
+        assert dto.code == '123456'
 
     def test_overwrite_existing(self, db_session, room):
         query_date = date(2026, 5, 21)
         first = room_service.generate_sign_in_code(room.id, query_date)
         second = room_service.generate_sign_in_code(room.id, query_date)
-        assert first.code != second.code
+        assert first.code == second.code == '123456'
         assert SignInCode.query.filter_by(room_id=room.id, valid_date=query_date).count() == 1
 
     def test_room_not_found(self, db_session):
@@ -344,26 +343,23 @@ class TestGenerateSignInCode:
 class TestValidateSignInCode:
     def test_valid_code(self, db_session, room):
         query_date = date.today()
-        dto = room_service.generate_sign_in_code(room.id, query_date)
-        assert room_service.validate_sign_in_code(room.id, dto.code, query_date) is True
+        assert room_service.validate_sign_in_code(room.id, '123456', query_date) is True
 
     def test_wrong_code(self, db_session, room):
         query_date = date.today()
-        room_service.generate_sign_in_code(room.id, query_date)
         assert room_service.validate_sign_in_code(room.id, 'WRONG1', query_date) is False
 
     def test_no_code_exists(self, db_session, room):
-        assert room_service.validate_sign_in_code(room.id, 'ABC123', date.today()) is False
+        assert room_service.validate_sign_in_code(room.id, '123456', date.today()) is True
 
 
 class TestGetSignInCode:
     def test_returns_current_code(self, db_session, room):
         query_date = date.today()
-        dto = room_service.generate_sign_in_code(room.id, query_date)
-        assert room_service.get_sign_in_code(room.id, query_date) == dto.code
+        assert room_service.get_sign_in_code(room.id, query_date) == '123456'
 
     def test_returns_none_when_not_exists(self, db_session, room):
-        assert room_service.get_sign_in_code(room.id, date(2026, 1, 1)) is None
+        assert room_service.get_sign_in_code(room.id, date(2026, 1, 1)) == '123456'
 
 
 # ============================================================================

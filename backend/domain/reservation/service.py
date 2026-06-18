@@ -28,6 +28,9 @@ from extensions import db
 # 视为“占用座位”的预约状态（用于冲突检测与可用性计算）
 ACTIVE_STATUSES = ('reserved', 'checked_in', 'completed')
 
+# 课程演示版固定签到码
+FIXED_SIGN_IN_CODE = '123456'
+
 
 # ============================================================================
 # 内部工具
@@ -377,15 +380,8 @@ def get_user_active_reservation_count(user_id: int) -> int:
 # ============================================================================
 
 def _validate_sign_in_code(room_id: int, code: str, valid_date: date) -> bool:
-    """校验签到码是否有效（room_id + valid_date 唯一，且未过期）。"""
-    record = SignInCode.query.filter_by(room_id=room_id, valid_date=valid_date).first()
-    if not record:
-        return False
-    if record.code != code:
-        return False
-    if record.expires_at and record.expires_at < _now():
-        return False
-    return True
+    """校验签到码是否有效。课程演示版使用固定签到码 123456。"""
+    return str(code).strip() == FIXED_SIGN_IN_CODE
 
 
 def check_in(reservation_id: int, code: str, acting_user_id: int = None) -> datetime:

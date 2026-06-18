@@ -13,7 +13,7 @@
           <div class="ci-right">
             <el-input
               v-model="codes[row.id]"
-              placeholder="签到码"
+              placeholder="签到码：123456"
               maxlength="16"
               style="width: 160px"
             />

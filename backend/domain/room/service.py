@@ -8,6 +8,8 @@ from datetime import datetime, time, date, timedelta
 from typing import Optional, List
 
 from domain.room.models import StudyRoom, Seat, SignInCode
+
+FIXED_SIGN_IN_CODE = '123456'
 from domain.room.dto import (
     RoomDTO, RoomDetailDTO, RoomCreateDTO, RoomUpdateDTO,
     SeatDTO, SeatCreateDTO, SeatUpdateDTO,
@@ -463,8 +465,8 @@ def get_available_seat_count(room_id: int, query_date: date) -> int:
 # ============================================================================
 
 def _generate_random_code(length: int = 6) -> str:
-    """生成随机大写字母数字码"""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    """生成签到码。课程演示版固定为 123456。"""
+    return FIXED_SIGN_IN_CODE
 
 
 def generate_sign_in_code(room_id: int, valid_date: date) -> SignInCodeDTO:
@@ -494,29 +496,13 @@ def generate_sign_in_code(room_id: int, valid_date: date) -> SignInCodeDTO:
 
 
 def validate_sign_in_code(room_id: int, code: str, valid_date: date) -> bool:
-    """校验签到码是否有效。"""
-    sign_in = SignInCode.query.filter_by(
-        room_id=room_id, valid_date=valid_date
-    ).first()
-    if not sign_in:
-        return False
-    if sign_in.code != code:
-        return False
-    if datetime.utcnow() > sign_in.expires_at:
-        return False
-    return True
+    """校验签到码是否有效。课程演示版固定为 123456。"""
+    return str(code).strip() == FIXED_SIGN_IN_CODE
 
 
 def get_sign_in_code(room_id: int, valid_date: date) -> Optional[str]:
-    """获取指定教室指定日期的当前有效签到码。"""
-    sign_in = SignInCode.query.filter_by(
-        room_id=room_id, valid_date=valid_date
-    ).first()
-    if not sign_in:
-        return None
-    if datetime.utcnow() > sign_in.expires_at:
-        return None
-    return sign_in.code
+    """获取指定教室指定日期的当前有效签到码。课程演示版固定为 123456。"""
+    return FIXED_SIGN_IN_CODE
 
 
 # ============================================================================

@@ -62,7 +62,7 @@
       <p class="ci-info" v-if="currentRow">
         {{ currentRow.room_name }} · {{ currentRow.seat_number }}
       </p>
-      <el-input v-model="code" placeholder="请输入签到码" maxlength="16" />
+      <el-input v-model="code" placeholder="请输入签到码：123456" maxlength="16" />
       <template #footer>
         <el-button @click="checkInVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="doCheckIn">确认签到</el-button>

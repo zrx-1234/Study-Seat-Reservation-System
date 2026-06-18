@@ -8,7 +8,7 @@ from flask import Flask
 from extensions import db, init_extensions, jwt
 
 from domain.user.models import User
-from domain.room.models import StudyRoom, Seat, SignInCode
+from domain.room.models import StudyRoom, Seat
 from domain.reservation.models import Reservation, ViolationRecord
 from domain.notification.models import Notification
 from domain.system.models import SystemConfig
@@ -275,14 +275,12 @@ def test_check_in(client, auth_headers):
     now = datetime.now()
     r = Reservation(user_id=user.id, seat_id=seat.id, start_time=now - timedelta(minutes=1),
                     end_time=now + timedelta(hours=2), status='reserved')
-    code = SignInCode(room_id=seat.room_id, code='ABC123', valid_date=r.start_time.date(),
-                      expires_at=now + timedelta(days=1))
-    db.session.add_all([r, code])
+    db.session.add(r)
     db.session.commit()
     rid = r.id
 
     resp = client.post(f'/api/v1/student/reservations/{rid}/check-in', headers=auth_headers,
-                       json={'code': 'ABC123'})
+                       json={'code': '123456'})
     assert resp.get_json()['code'] == 200
     assert resp.get_json()['data']['check_in_time']
 

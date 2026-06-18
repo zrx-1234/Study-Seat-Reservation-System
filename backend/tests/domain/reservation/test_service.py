@@ -12,7 +12,7 @@ from extensions import db, init_extensions
 
 # 导入全部模型以便 create_all 建表
 from domain.user.models import User
-from domain.room.models import StudyRoom, Seat, SignInCode
+from domain.room.models import StudyRoom, Seat
 from domain.reservation.models import Reservation, ViolationRecord
 from domain.notification.models import Notification
 from domain.system.models import SystemConfig
@@ -162,22 +162,14 @@ def _make_active_reservation(seed, start_offset_minutes=-1):
 
 def test_check_in_success(seed):
     r = _make_active_reservation(seed)
-    code = SignInCode(room_id=seed['room'].id, code='ABC123', valid_date=r.start_time.date(),
-                      expires_at=datetime.now() + timedelta(days=1))
-    db.session.add(code)
-    db.session.commit()
 
-    ts = resv.check_in(r.id, 'ABC123', acting_user_id=seed['user'].id)
+    ts = resv.check_in(r.id, '123456', acting_user_id=seed['user'].id)
     assert isinstance(ts, datetime)
     assert db.session.get(Reservation, r.id).status == 'checked_in'
 
 
 def test_check_in_invalid_code(seed):
     r = _make_active_reservation(seed)
-    code = SignInCode(room_id=seed['room'].id, code='ABC123', valid_date=r.start_time.date(),
-                      expires_at=datetime.now() + timedelta(days=1))
-    db.session.add(code)
-    db.session.commit()
     with pytest.raises(ValidationError):
         resv.check_in(r.id, 'WRONG', acting_user_id=seed['user'].id)
 
