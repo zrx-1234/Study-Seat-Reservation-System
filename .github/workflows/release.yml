@@ -1,9 +1,6 @@
 name: Weekly Release Build
 
 on:
-  schedule:
-    # UTC 周一 01:00 = 北京时间周一 09:00
-    - cron: '0 1 * * 1'
   workflow_dispatch:
     inputs:
       branch:
